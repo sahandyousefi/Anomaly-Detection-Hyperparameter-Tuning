@@ -1,7 +1,6 @@
 # Financial Fraud Detection Using XGBoost and Hyperparameter Tuning
 
 A machine learning project applying XGBoost classification to detect fraudulent financial transactions on a large-scale payments dataset. The pipeline covers data preprocessing, class imbalance handling via undersampling, domain-driven feature engineering, model training with threshold optimization, hyperparameter tuning, and model interpretability using SHAP values.
-
 ---
 
 ## Business Objective
