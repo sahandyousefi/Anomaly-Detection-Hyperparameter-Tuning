@@ -170,8 +170,16 @@ SHAP analysis confirms that the model's decisions are grounded in economically i
 ## Project Structure
 
     Anomaly-Detection-Hyperparameter-Tuning/
-    |-- anomaly-detection-hyper-parameter-tuning.ipynb    # Full pipeline: preprocessing, feature engineering, modeling, SHAP
+    |-- data/
+    |   |-- README.md                          # Dataset source and download instructions
+    |-- notebooks/
+    |   |-- 00_original_exploration.ipynb      # Original end-to-end analysis
+    |-- LICENSE
+    |-- pyproject.toml
     |-- README.md
+    |-- ROADMAP.md                             # Planned refactor and known issues
+
+The repository is being restructured into an installable package. See `ROADMAP.md` for the target layout.
 
 ---
 
@@ -200,11 +208,11 @@ SHAP analysis confirms that the model's decisions are grounded in economically i
 
        pip install pandas numpy matplotlib seaborn scikit-learn imbalanced-learn xgboost shap jupyter
 
-3. Download the PaySim dataset from Kaggle and place `PS_20174392719_1491204439457_log.csv` in the input directory, or update the file path in the notebook to match your local setup.
+3. Download the PaySim dataset as described in `data/README.md`. The CSV is expected at `data/raw/PS_20174392719_1491204439457_log.csv`.
 
 4. Launch the notebook:
 
-       jupyter notebook anomaly-detection-hyper-parameter-tuning.ipynb
+       jupyter notebook notebooks/00_original_exploration.ipynb
 
 ---
 

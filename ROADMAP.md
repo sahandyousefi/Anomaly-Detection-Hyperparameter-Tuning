@@ -56,7 +56,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 0: Project foundation
 
-- [ ] Move the original notebook to `notebooks/00_original_exploration.ipynb` and add `data/README.md` with dataset download instructions
 - [ ] Create `src/fraud_detection/` package layout with `__init__.py`
 - [ ] Add `configs/default.yaml` holding paths, seeds, split settings, and model parameters
 - [ ] Add a config loader (`config.py`) with typed dataclasses
@@ -144,3 +143,4 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 Completed items are moved here with the date.
 
 - [x] 2026-11-19: Add `.gitignore`, `LICENSE` (MIT), and `pyproject.toml` with package metadata and pinned dependency ranges
+- [x] 2026-11-19: Move the original notebook to `notebooks/00_original_exploration.ipynb` and add `data/README.md` with dataset download instructions
