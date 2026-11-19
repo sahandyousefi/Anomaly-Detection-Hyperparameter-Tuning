@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Environments
+.venv/
+venv/
+env/
+.env
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Data: raw files are downloaded locally, never committed
+data/raw/
+data/interim/
+data/processed/
+*.csv
+*.parquet
+
+# Experiment outputs
+artifacts/
+mlruns/
+*.db
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store

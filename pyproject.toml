@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fraud-detection"
+version = "0.1.0"
+description = "Fraud detection on the PaySim mobile money dataset with gradient boosting, anomaly detection, and SHAP-based explanations."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Sahand Yousefi" }]
+keywords = ["fraud detection", "anomaly detection", "xgboost", "shap", "paysim"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0,<4",
+    "scikit-learn>=1.3,<2",
+    "imbalanced-learn>=0.11",
+    "xgboost>=2.0,<4",
+    "shap>=0.44",
+    "matplotlib>=3.7,<4",
+    "pyyaml>=6.0,<7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "ruff>=0.4",
+]
+
+[project.urls]
+Repository = "https://github.com/sahandyousefi/Anomaly-Detection-Hyperparameter-Tuning"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
