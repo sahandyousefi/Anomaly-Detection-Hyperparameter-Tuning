@@ -2,6 +2,46 @@
 
 This file tracks the planned refactor of the project from a single exploratory notebook into a tested, reproducible fraud detection codebase. Items are completed in order. Each item is scoped to one focused commit.
 
+## Target layout
+
+```
+Anomaly-Detection-Hyperparameter-Tuning/
+|-- .github/workflows/ci.yml
+|-- configs/
+|   |-- default.yaml
+|-- data/
+|   |-- README.md                  # download instructions; raw data is not tracked
+|-- docs/
+|   |-- methodology.md
+|   |-- model_card.md
+|   |-- figures/
+|-- notebooks/
+|   |-- 00_original_exploration.ipynb
+|   |-- 01_exploratory_analysis.ipynb
+|   |-- 02_modeling_walkthrough.ipynb
+|-- reports/
+|   |-- figures/
+|-- src/fraud_detection/
+|   |-- __init__.py
+|   |-- config.py
+|   |-- cli.py
+|   |-- data/                      # load.py, split.py, synthetic.py
+|   |-- features/                  # build.py
+|   |-- models/                    # baselines.py, gbm.py, autoencoder.py, sequence.py
+|   |-- tuning/                    # optuna_search.py
+|   |-- evaluation/                # metrics.py, thresholds.py, calibration.py
+|   |-- explain/                   # shap_analysis.py, reason_codes.py
+|   |-- monitoring/                # drift.py
+|   |-- serving/                   # api.py, schemas.py
+|-- tests/
+|-- Dockerfile
+|-- Makefile
+|-- pyproject.toml
+|-- LICENSE
+|-- README.md
+|-- ROADMAP.md
+```
+
 ## Known issues in the original notebook
 
 These issues drive Phase 1 and must be fixed before any new results are reported.
@@ -17,6 +57,7 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 ## Phase 0: Project foundation
 
 - [ ] Add `.gitignore`, `LICENSE` (MIT), and `pyproject.toml` with package metadata and pinned dependency ranges
+- [ ] Move the original notebook to `notebooks/00_original_exploration.ipynb` and add `data/README.md` with dataset download instructions
 - [ ] Create `src/fraud_detection/` package layout with `__init__.py`
 - [ ] Add `configs/default.yaml` holding paths, seeds, split settings, and model parameters
 - [ ] Add a config loader (`config.py`) with typed dataclasses
@@ -92,6 +133,7 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 8: Documentation
 
+- [ ] `docs/methodology.md`: formal problem statement, notation, evaluation protocol, and references to the PaySim, XGBoost, SHAP, Optuna, Isolation Forest, and focal loss papers
 - [ ] Rewrite the notebook as a clean walkthrough that imports from the package
 - [ ] Model card covering intended use, data, metrics, limitations, and fairness notes
 - [ ] Architecture diagram for the pipeline
