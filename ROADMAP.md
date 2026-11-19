@@ -56,7 +56,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 0: Project foundation
 
-- [ ] Add `configs/default.yaml` holding paths, seeds, split settings, and model parameters
 - [ ] Add a config loader (`config.py`) with typed dataclasses
 - [ ] Add a synthetic PaySim-like data generator (`data/synthetic.py`) for tests and CI, since the real dataset is not stored in the repo
 - [ ] Add `ruff` and `pre-commit` configuration
@@ -144,3 +143,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-19: Add `.gitignore`, `LICENSE` (MIT), and `pyproject.toml` with package metadata and pinned dependency ranges
 - [x] 2026-11-19: Move the original notebook to `notebooks/00_original_exploration.ipynb` and add `data/README.md` with dataset download instructions
 - [x] 2026-11-19: Create `src/fraud_detection/` package layout with `__init__.py`
+- [x] 2026-11-19: Add `configs/default.yaml` holding paths, seeds, split settings, and model parameters
