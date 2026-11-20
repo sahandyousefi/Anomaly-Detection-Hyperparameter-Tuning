@@ -30,3 +30,12 @@ CUSTOMER_PREFIX = "C"
 MERCHANT_PREFIX = "M"
 
 FLAGGED_TRANSFER_THRESHOLD = 200_000.0
+
+BALANCE_COLUMNS: tuple[str, ...] = (
+    "oldbalanceOrg",
+    "newbalanceOrig",
+    "oldbalanceDest",
+    "newbalanceDest",
+)
+
+LABEL_COLUMNS: tuple[str, ...] = ("isFraud", "isFlaggedFraud")
