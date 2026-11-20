@@ -56,7 +56,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 0: Project foundation
 
-- [ ] Add GitHub Actions workflow running lint and tests on push
 
 ## Phase 1: Correct data pipeline
 
@@ -144,3 +143,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-19: Add a config loader (`config.py`) with typed dataclasses
 - [x] 2026-11-19: Add a synthetic PaySim-like data generator (`data/synthetic.py`) for tests and CI, since the real dataset is not stored in the repo
 - [x] 2026-11-20: Add `ruff` and `pre-commit` configuration
+- [x] 2026-11-20: Add GitHub Actions workflow running lint and tests on push
