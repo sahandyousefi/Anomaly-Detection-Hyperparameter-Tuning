@@ -32,6 +32,7 @@ dev = [
     "pytest>=7.4",
     "pytest-cov>=4.1",
     "ruff>=0.4",
+    "pre-commit>=3.5",
 ]
 
 [project.urls]
@@ -39,6 +40,28 @@ Repository = "https://github.com/sahandyousefi/Anomaly-Detection-Hyperparameter-
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+target-version = "py310"
+src = ["src", "tests"]
+# The original notebook is kept unchanged as a record of the first analysis
+extend-exclude = ["notebooks/00_original_exploration.ipynb"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+    "SIM",  # flake8-simplify
+    "NPY",  # numpy-specific rules
+    "RUF",  # ruff-specific rules
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["fraud_detection"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
