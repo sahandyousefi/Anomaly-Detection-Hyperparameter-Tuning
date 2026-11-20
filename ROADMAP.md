@@ -59,7 +59,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 1: Correct data pipeline
 
-- [ ] `features/build.py`: point-in-time account aggregates computed only from prior transactions, no lookahead
 - [ ] Balance-based features (`errorBalanceOrig`, `errorBalanceDest`) with an ablation flag
 - [ ] Apply resampling to the training fold only, after feature construction
 - [ ] Unit tests for leakage: aggregates must not use future rows, and test rows must never appear in training
@@ -144,3 +143,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-20: `data/load.py`: schema-validated CSV loader with memory-efficient dtypes
 - [x] 2026-11-20: `data/split.py`: time-based train, validation, and test split on `step`
 - [x] 2026-11-20: `features/build.py`: transaction-level features (type flags from raw strings, hour of day, merchant flag, amount bins)
+- [x] 2026-11-20: `features/build.py`: point-in-time account aggregates computed only from prior transactions, no lookahead
