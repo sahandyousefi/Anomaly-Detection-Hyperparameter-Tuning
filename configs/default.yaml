@@ -12,6 +12,11 @@ data:
   # isFlaggedFraud is the simulator's own rule output, kept only for the rule baseline
   drop_columns: [isFlaggedFraud]
 
+# Set balance_features to false to measure how much the model relies on the
+# balance reconciliation residuals, which are partly a simulator artifact
+features:
+  balance_features: true
+
 # Fractions refer to the ordered range of hourly steps, not to row counts
 split:
   train_fraction: 0.70

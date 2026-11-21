@@ -34,6 +34,13 @@ class DataConfig:
 
 
 @dataclass(frozen=True)
+class FeaturesConfig:
+    """Switches for optional feature groups, used for ablation runs."""
+
+    balance_features: bool = True
+
+
+@dataclass(frozen=True)
 class SplitConfig:
     train_fraction: float
     validation_fraction: float
@@ -90,6 +97,7 @@ class Config:
     seed: int
     paths: PathsConfig
     data: DataConfig
+    features: FeaturesConfig
     split: SplitConfig
     resampling: ResamplingConfig
     model: ModelConfig
@@ -143,6 +151,7 @@ def config_from_dict(raw: Mapping[str, Any], base_dir: Path | None = None) -> Co
         seed=int(raw.get("seed", 42)),
         paths=_build(PathsConfig, paths, "paths"),
         data=_build(DataConfig, data, "data"),
+        features=_build(FeaturesConfig, raw.get("features") or {}, "features"),
         split=_build(SplitConfig, _section(raw, "split"), "split"),
         resampling=_build(ResamplingConfig, raw.get("resampling") or {}, "resampling"),
         model=_build(ModelConfig, model, "model"),

@@ -78,3 +78,15 @@ def test_unexpected_key_reported(raw_config: dict) -> None:
     raw["data"]["label"] = "isFraud"
     with pytest.raises(ConfigError, match="'data'"):
         config_from_dict(raw)
+
+
+def test_features_section_is_optional(raw_config: dict) -> None:
+    raw = deepcopy(raw_config)
+    del raw["features"]
+    assert config_from_dict(raw).features.balance_features is True
+
+
+def test_balance_features_can_be_disabled(raw_config: dict) -> None:
+    raw = deepcopy(raw_config)
+    raw["features"]["balance_features"] = False
+    assert config_from_dict(raw).features.balance_features is False

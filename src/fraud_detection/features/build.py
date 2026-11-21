@@ -9,6 +9,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from fraud_detection.config import FeaturesConfig
 from fraud_detection.data.schema import FLAGGED_TRANSFER_THRESHOLD, MERCHANT_PREFIX
 
 HOURS_PER_DAY = 24
@@ -283,3 +284,125 @@ def add_account_features(df: pd.DataFrame, time_column: str = "step") -> pd.Data
         df["amount"].astype("float64") / features["orig_prior_amount_mean"]
     ).replace([np.inf, -np.inf], np.nan)
     return pd.concat([df, features[list(ACCOUNT_FEATURES)]], axis=1)
+
+
+BALANCE_FEATURES: tuple[str, ...] = (
+    "error_balance_orig",
+    "error_balance_dest",
+    "dest_balances_zero",
+)
+
+# Transaction types in which the originator's balance increases
+_CREDIT_TO_ORIG_TYPES: tuple[str, ...] = ("CASH_IN",)
+
+
+def balance_features(df: pd.DataFrame) -> pd.DataFrame:
+    r"""Reconciliation residuals of the originator and destination balances.
+
+    For each side the residual is the recorded new balance minus the balance
+    implied by the old balance and the amount:
+
+    .. math::
+
+        e_{orig} = b^{new}_{orig} - (b^{old}_{orig} - s \, a), \qquad
+        e_{dest} = b^{new}_{dest} - (b^{old}_{dest} + s \, a),
+
+    where :math:`a` is the amount and :math:`s = -1` for ``CASH_IN`` (money
+    flows to the originator) and :math:`s = 1` otherwise. A consistent ledger
+    gives zero on both sides. In PaySim the residuals separate fraud well,
+    largely because destination balances of fraudulent transfers are often
+    recorded as zero, so they partly describe the simulator rather than real
+    fraud behaviour.
+
+    Parameters
+    ----------
+    df
+        Transactions with ``type``, ``amount``, ``nameDest``, and the four
+        balance columns.
+
+    Returns
+    -------
+    pandas.DataFrame
+        ``error_balance_orig`` and ``error_balance_dest`` as ``float64``, and
+        ``dest_balances_zero`` (``int8``), which marks a non-merchant
+        destination whose old and new balances are both zero although a
+        positive amount was received. Merchant balances are not recorded, so
+        ``error_balance_dest`` is NaN for merchant destinations.
+    """
+    amount = df["amount"].to_numpy(dtype="float64")
+    direction = np.where(
+        df["type"].astype(str).isin(_CREDIT_TO_ORIG_TYPES).to_numpy(), -1.0, 1.0
+    )
+    old_orig = df["oldbalanceOrg"].to_numpy(dtype="float64")
+    new_orig = df["newbalanceOrig"].to_numpy(dtype="float64")
+    old_dest = df["oldbalanceDest"].to_numpy(dtype="float64")
+    new_dest = df["newbalanceDest"].to_numpy(dtype="float64")
+    is_merchant = merchant_flag(df["nameDest"]).to_numpy().astype(bool)
+
+    error_dest = new_dest - (old_dest + direction * amount)
+    dest_zero = (old_dest == 0) & (new_dest == 0) & (amount > 0) & ~is_merchant
+    return pd.DataFrame(
+        {
+            "error_balance_orig": new_orig - (old_orig - direction * amount),
+            "error_balance_dest": np.where(is_merchant, np.nan, error_dest),
+            "dest_balances_zero": dest_zero.astype("int8"),
+        },
+        index=df.index,
+    )
+
+
+def add_balance_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Append the columns in :data:`BALANCE_FEATURES` to a copy of ``df``."""
+    return pd.concat([df, balance_features(df)], axis=1)
+
+
+def feature_columns(config: FeaturesConfig | None = None) -> list[str]:
+    """Names of the model input columns produced by :func:`build_features`.
+
+    Parameters
+    ----------
+    config
+        Feature switches. Defaults to all groups enabled.
+
+    Returns
+    -------
+    list of str
+        Transaction, account, and (if enabled) balance feature names.
+    """
+    config = config or FeaturesConfig()
+    columns = [*TRANSACTION_FEATURES, *ACCOUNT_FEATURES]
+    if config.balance_features:
+        columns.extend(BALANCE_FEATURES)
+    return columns
+
+
+def build_features(
+    df: pd.DataFrame,
+    config: FeaturesConfig | None = None,
+    time_column: str = "step",
+) -> pd.DataFrame:
+    """Build every enabled feature group on the full chronological log.
+
+    All groups are either row-level or point-in-time and none uses labels, so
+    the table can be split into folds afterwards without leakage. Resampling
+    must happen after this step and on the training fold only.
+
+    Parameters
+    ----------
+    df
+        Raw PaySim transactions.
+    config
+        Feature switches. Defaults to all groups enabled.
+    time_column
+        Integer time index.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Copy of ``df`` with the columns of :func:`feature_columns` appended.
+    """
+    config = config or FeaturesConfig()
+    result = add_account_features(add_transaction_features(df), time_column)
+    if config.balance_features:
+        result = add_balance_features(result)
+    return result
