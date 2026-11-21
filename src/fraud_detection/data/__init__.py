@@ -1,1 +1,1 @@
-"""Data loading, schema validation, time-based splitting, and synthetic data."""
+"""Data loading, schema validation, time-based splitting, resampling, synthetic data."""

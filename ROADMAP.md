@@ -25,7 +25,7 @@ Anomaly-Detection-Hyperparameter-Tuning/
 |   |-- __init__.py
 |   |-- config.py
 |   |-- cli.py
-|   |-- data/                      # load.py, split.py, synthetic.py
+|   |-- data/                      # load.py, split.py, resample.py, synthetic.py
 |   |-- features/                  # build.py
 |   |-- models/                    # baselines.py, gbm.py, autoencoder.py, sequence.py
 |   |-- tuning/                    # optuna_search.py
@@ -59,7 +59,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 1: Correct data pipeline
 
-- [ ] Apply resampling to the training fold only, after feature construction
 - [ ] Unit tests for leakage: aggregates must not use future rows, and test rows must never appear in training
 - [ ] Unit tests for feature correctness on hand-built fixtures
 
@@ -144,3 +143,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-20: `features/build.py`: transaction-level features (type flags from raw strings, hour of day, merchant flag, amount bins)
 - [x] 2026-11-20: `features/build.py`: point-in-time account aggregates computed only from prior transactions, no lookahead
 - [x] 2026-11-21: Balance-based features (`errorBalanceOrig`, `errorBalanceDest`) with an ablation flag
+- [x] 2026-11-21: Apply resampling to the training fold only, after feature construction
