@@ -62,7 +62,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 2: Modeling and evaluation
 
-- [ ] `evaluation/metrics.py`: PR-AUC, ROC-AUC, recall at fixed precision, precision at fixed recall
 - [ ] Cost-based evaluation with configurable false-negative and false-positive costs
 - [ ] Threshold selection on the validation set only, by cost minimization or a target recall
 - [ ] Baseline models: logistic regression and a rule-based baseline reproducing `isFlaggedFraud`
@@ -144,3 +143,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-21: Apply resampling to the training fold only, after feature construction
 - [x] 2026-11-21: Unit tests for leakage: aggregates must not use future rows, and test rows must never appear in training
 - [x] 2026-11-21: Unit tests for feature correctness on hand-built fixtures
+- [x] 2026-11-21: `evaluation/metrics.py`: PR-AUC, ROC-AUC, recall at fixed precision, precision at fixed recall
