@@ -59,7 +59,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 1: Correct data pipeline
 
-- [ ] Unit tests for feature correctness on hand-built fixtures
 
 ## Phase 2: Modeling and evaluation
 
@@ -144,3 +143,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-21: Balance-based features (`errorBalanceOrig`, `errorBalanceDest`) with an ablation flag
 - [x] 2026-11-21: Apply resampling to the training fold only, after feature construction
 - [x] 2026-11-21: Unit tests for leakage: aggregates must not use future rows, and test rows must never appear in training
+- [x] 2026-11-21: Unit tests for feature correctness on hand-built fixtures
