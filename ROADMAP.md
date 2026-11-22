@@ -62,7 +62,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 2: Modeling and evaluation
 
-- [ ] Baseline models: logistic regression and a rule-based baseline reproducing `isFlaggedFraud`
 - [ ] XGBoost training module with early stopping on the validation fold
 - [ ] LightGBM and CatBoost alternatives behind a common model interface
 - [ ] Class weighting (`scale_pos_weight`) compared against undersampling and SMOTE
@@ -144,3 +143,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-21: `evaluation/metrics.py`: PR-AUC, ROC-AUC, recall at fixed precision, precision at fixed recall
 - [x] 2026-11-21: Cost-based evaluation with configurable false-negative and false-positive costs
 - [x] 2026-11-22: Threshold selection on the validation set only, by cost minimization or a target recall
+- [x] 2026-11-22: Baseline models: logistic regression and a rule-based baseline reproducing `isFlaggedFraud`
