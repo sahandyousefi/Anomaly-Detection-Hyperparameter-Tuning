@@ -120,3 +120,38 @@ def test_lightgbm_receives_class_weight(folds: ModelingFolds) -> None:
         5,
     )
     assert fitted.model.get_params()["scale_pos_weight"] == 8.0
+
+
+def test_catboost_early_stopping_on_validation(folds: ModelingFolds) -> None:
+    pytest.importorskip("catboost")
+    from fraud_detection.models.gbm import fit_catboost
+
+    params = {"n_estimators": 300, "learning_rate": 0.3, "depth": 4, "thread_count": 1}
+    fitted = fit_catboost(
+        folds.train, folds.X_validation, folds.y_validation, params, 20
+    )
+    assert fitted.best_iteration < params["n_estimators"] - 1
+    assert len(fitted.validation_curve) == fitted.best_iteration + 21
+    assert fitted.best_score == pytest.approx(fitted.validation_curve.max())
+    # use_best_model drops the trees grown after the best iteration
+    assert fitted.model.tree_count_ == fitted.best_iteration + 1
+    scores = fitted.predict_scores(folds.X_test)
+    assert pr_auc(folds.y_test, scores) > 5 * folds.y_test.mean()
+
+
+def test_catboost_receives_class_weight_and_seed(folds: ModelingFolds) -> None:
+    pytest.importorskip("catboost")
+    from fraud_detection.models.gbm import fit_catboost
+
+    weighted = ResampledFold(folds.train.X, folds.train.y, scale_pos_weight=6.0)
+    fitted = fit_catboost(
+        weighted,
+        folds.X_validation,
+        folds.y_validation,
+        {"n_estimators": 20, "thread_count": 1},
+        5,
+        seed=4,
+    )
+    params = fitted.model.get_params()
+    assert params["scale_pos_weight"] == 6.0
+    assert params["random_state"] == 4

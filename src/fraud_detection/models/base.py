@@ -93,10 +93,24 @@ def _fit_lightgbm(
     return fit_lightgbm(train, X_validation, y_validation, params, patience, seed)
 
 
+def _fit_catboost(
+    train: ResampledFold,
+    X_validation: pd.DataFrame,
+    y_validation: pd.Series,
+    params: Mapping[str, Any] | None = None,
+    seed: int = 0,
+) -> FraudModel:
+    from fraud_detection.models.gbm import fit_catboost
+
+    params, patience = _split_patience(params)
+    return fit_catboost(train, X_validation, y_validation, params, patience, seed)
+
+
 MODEL_REGISTRY: dict[str, FitFunction] = {
     "logistic_regression": _fit_logistic_regression,
     "xgboost": _fit_xgboost,
     "lightgbm": _fit_lightgbm,
+    "catboost": _fit_catboost,
 }
 
 

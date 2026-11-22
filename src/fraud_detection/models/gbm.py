@@ -1,6 +1,7 @@
 """Gradient boosted trees with early stopping on the validation fold.
 
-XGBoost (Chen and Guestrin, 2016) and LightGBM (Ke et al., 2017) are trained
+XGBoost (Chen and Guestrin, 2016), LightGBM (Ke et al., 2017), and CatBoost
+(Prokhorenkova et al., 2018) are trained
 on the training fold, after any rebalancing, and the number of boosting rounds
 is chosen by early stopping on the untouched validation fold. Missing values
 are passed through, since both learners assign them a default split direction;
@@ -10,9 +11,13 @@ The validation fold therefore serves two purposes: the stopping round and,
 later, the decision threshold. Both are low-dimensional choices, and the test
 fold is never used for either. The stopping metric is the area under the
 precision-recall curve (``aucpr`` in XGBoost, ``average_precision`` in
-LightGBM), which matches the primary evaluation metric.
+LightGBM, ``PRAUC`` in CatBoost), which matches the primary evaluation metric.
+The three libraries integrate the curve differently, so their stopping scores
+are comparable only within one library; cross-model comparison uses
+:func:`fraud_detection.evaluation.metrics.pr_auc` on the predicted scores.
 
-LightGBM is an optional dependency, installed with the ``gbm`` extra.
+LightGBM and CatBoost are optional dependencies, installed with the ``gbm``
+extra.
 """
 
 from __future__ import annotations
@@ -50,6 +55,17 @@ LIGHTGBM_DEFAULTS: dict[str, Any] = {
     "colsample_bytree": 0.8,
     "n_jobs": -1,
     "verbose": -1,
+}
+
+CATBOOST_DEFAULTS: dict[str, Any] = {
+    "n_estimators": 2000,
+    "learning_rate": 0.05,
+    "depth": 6,
+    "l2_leaf_reg": 3.0,
+    "eval_metric": "PRAUC",
+    "thread_count": -1,
+    "verbose": False,
+    "allow_writing_files": False,
 }
 
 # Set as the only metric so early stopping does not also track the log loss
@@ -271,5 +287,85 @@ def fit_lightgbm(
         model=model,
         best_iteration=best_iteration,
         best_score=float(curve[best_iteration]),
+        validation_curve=curve,
+    )
+
+
+def catboost_params(
+    params: Mapping[str, Any] | None = None,
+    scale_pos_weight: float = 1.0,
+    seed: int = 0,
+) -> dict[str, Any]:
+    """Merge user parameters over :data:`CATBOOST_DEFAULTS`.
+
+    Parameters
+    ----------
+    params
+        Overrides of the CatBoost defaults. CatBoost names the thread count
+        ``thread_count``, not ``n_jobs``.
+    scale_pos_weight
+        Positive class weight from the resampling step. An explicit
+        ``scale_pos_weight`` in ``params`` takes precedence.
+    seed
+        Random state, unless ``params`` sets ``random_state``.
+
+    Returns
+    -------
+    dict
+        Keyword arguments for ``catboost.CatBoostClassifier``.
+    """
+    return _merge_params(CATBOOST_DEFAULTS, params, scale_pos_weight, seed)
+
+
+def fit_catboost(
+    train: ResampledFold,
+    X_validation: pd.DataFrame,
+    y_validation: pd.Series,
+    params: Mapping[str, Any] | None = None,
+    early_stopping_rounds: int = 50,
+    seed: int = 0,
+) -> BoostedModel:
+    """Train CatBoost and stop when validation PR-AUC stops improving.
+
+    The model is shrunk to the best iteration after training
+    (``use_best_model``), so predictions use the early-stopped ensemble.
+
+    Parameters
+    ----------
+    train
+        Training rows after rebalancing; its ``scale_pos_weight`` is used unless
+        ``params`` overrides it.
+    X_validation, y_validation
+        Validation fold at the observed class ratio.
+    params
+        Overrides of :data:`CATBOOST_DEFAULTS`. ``n_estimators`` is the upper
+        bound on boosting rounds.
+    early_stopping_rounds
+        Rounds without improvement before training stops.
+    seed
+        Random state of the booster.
+
+    Returns
+    -------
+    BoostedModel
+        Fitted model, best round, and validation learning curve.
+    """
+    from catboost import CatBoostClassifier
+
+    check_fit_inputs(train, X_validation, early_stopping_rounds)
+    kwargs = catboost_params(params, train.scale_pos_weight, seed)
+    model = CatBoostClassifier(use_best_model=True, **kwargs)
+    model.fit(
+        train.X,
+        train.y,
+        eval_set=(X_validation, y_validation),
+        early_stopping_rounds=early_stopping_rounds,
+    )
+    metric = kwargs["eval_metric"]
+    curve = np.asarray(model.get_evals_result()["validation"][metric], dtype="float64")
+    return BoostedModel(
+        model=model,
+        best_iteration=int(model.get_best_iteration()),
+        best_score=float(model.get_best_score()["validation"][metric]),
         validation_curve=curve,
     )

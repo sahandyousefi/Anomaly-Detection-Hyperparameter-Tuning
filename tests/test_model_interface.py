@@ -25,7 +25,8 @@ def folds() -> ModelingFolds:
 
 
 def test_registry_lists_model_families() -> None:
-    assert {"logistic_regression", "xgboost", "lightgbm"} <= set(MODEL_REGISTRY)
+    expected = {"logistic_regression", "xgboost", "lightgbm", "catboost"}
+    assert expected <= set(MODEL_REGISTRY)
 
 
 def test_logistic_regression_through_interface(folds: ModelingFolds) -> None:
@@ -77,3 +78,16 @@ def test_lightgbm_through_interface(folds: ModelingFolds) -> None:
 def test_unknown_model_name_is_rejected(folds: ModelingFolds) -> None:
     with pytest.raises(ValueError, match="Unknown model"):
         fit_model("random_forest", folds.train, folds.X_validation, folds.y_validation)
+
+
+def test_catboost_through_interface(folds: ModelingFolds) -> None:
+    pytest.importorskip("catboost")
+    model = fit_model(
+        "catboost",
+        folds.train,
+        folds.X_validation,
+        folds.y_validation,
+        {"n_estimators": 50, "thread_count": 1, "early_stopping_rounds": 5},
+    )
+    assert isinstance(model, FraudModel)
+    assert model.predict_scores(folds.X_test).shape == (len(folds.X_test),)

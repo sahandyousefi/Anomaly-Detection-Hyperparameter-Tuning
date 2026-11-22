@@ -62,7 +62,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 2: Modeling and evaluation
 
-- [ ] CatBoost alternative behind the common model interface
 - [ ] Class weighting (`scale_pos_weight`) compared against undersampling and SMOTE
 - [ ] Probability calibration (isotonic and Platt) with reliability plots and Brier score
 - [ ] `train.py` CLI entry point driven by config
@@ -145,3 +144,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-22: Baseline models: logistic regression and a rule-based baseline reproducing `isFlaggedFraud`
 - [x] 2026-11-22: XGBoost training module with early stopping on the validation fold
 - [x] 2026-11-22: Common model interface (`models/base.py`) with a LightGBM alternative
+- [x] 2026-11-22: CatBoost alternative behind the common model interface
