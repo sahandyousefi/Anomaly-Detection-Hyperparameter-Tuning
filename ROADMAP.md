@@ -27,7 +27,7 @@ Anomaly-Detection-Hyperparameter-Tuning/
 |   |-- cli.py
 |   |-- data/                      # load.py, split.py, resample.py, synthetic.py
 |   |-- features/                  # build.py
-|   |-- models/                    # baselines.py, gbm.py, autoencoder.py, sequence.py
+|   |-- models/                    # base.py, baselines.py, gbm.py, autoencoder.py, sequence.py
 |   |-- tuning/                    # optuna_search.py
 |   |-- evaluation/                # metrics.py, thresholds.py, calibration.py
 |   |-- explain/                   # shap_analysis.py, reason_codes.py
@@ -62,7 +62,7 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 2: Modeling and evaluation
 
-- [ ] LightGBM and CatBoost alternatives behind a common model interface
+- [ ] CatBoost alternative behind the common model interface
 - [ ] Class weighting (`scale_pos_weight`) compared against undersampling and SMOTE
 - [ ] Probability calibration (isotonic and Platt) with reliability plots and Brier score
 - [ ] `train.py` CLI entry point driven by config
@@ -144,3 +144,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-22: Threshold selection on the validation set only, by cost minimization or a target recall
 - [x] 2026-11-22: Baseline models: logistic regression and a rule-based baseline reproducing `isFlaggedFraud`
 - [x] 2026-11-22: XGBoost training module with early stopping on the validation fold
+- [x] 2026-11-22: Common model interface (`models/base.py`) with a LightGBM alternative

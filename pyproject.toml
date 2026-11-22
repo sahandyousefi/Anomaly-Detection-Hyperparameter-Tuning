@@ -34,6 +34,10 @@ dev = [
     "ruff>=0.4",
     "pre-commit>=3.5",
 ]
+gbm = [
+    "lightgbm>=4.0",
+    "catboost>=1.2",
+]
 
 [project.urls]
 Repository = "https://github.com/sahandyousefi/Anomaly-Detection-Hyperparameter-Tuning"

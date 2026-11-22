@@ -80,3 +80,43 @@ def test_feature_mismatch_is_rejected(folds: ModelingFolds) -> None:
         )
     with pytest.raises(ValueError, match="early_stopping_rounds"):
         fit_xgboost(folds.train, folds.X_validation, folds.y_validation, FAST, 0)
+
+
+def test_lightgbm_early_stopping_on_validation(folds: ModelingFolds) -> None:
+    pytest.importorskip("lightgbm")
+    from fraud_detection.models.gbm import fit_lightgbm
+
+    params = {"n_estimators": 300, "learning_rate": 0.3, "num_leaves": 7, "n_jobs": 1}
+    fitted = fit_lightgbm(
+        folds.train, folds.X_validation, folds.y_validation, params, 20
+    )
+    assert fitted.best_iteration < params["n_estimators"] - 1
+    assert len(fitted.validation_curve) == fitted.best_iteration + 21
+    assert fitted.best_score == pytest.approx(fitted.validation_curve.max())
+    scores = fitted.predict_scores(folds.X_validation)
+    truncated = fitted.model.predict_proba(
+        folds.X_validation, num_iteration=fitted.best_iteration + 1
+    )[:, 1]
+    np.testing.assert_allclose(scores, truncated)
+    # LightGBM's average_precision matches the sklearn estimator used here
+    assert pr_auc(folds.y_validation, scores) == pytest.approx(
+        fitted.best_score, abs=1e-6
+    )
+    assert pr_auc(folds.y_test, fitted.predict_scores(folds.X_test)) > (
+        5 * folds.y_test.mean()
+    )
+
+
+def test_lightgbm_receives_class_weight(folds: ModelingFolds) -> None:
+    pytest.importorskip("lightgbm")
+    from fraud_detection.models.gbm import fit_lightgbm
+
+    weighted = ResampledFold(folds.train.X, folds.train.y, scale_pos_weight=8.0)
+    fitted = fit_lightgbm(
+        weighted,
+        folds.X_validation,
+        folds.y_validation,
+        {"n_estimators": 20, "n_jobs": 1},
+        5,
+    )
+    assert fitted.model.get_params()["scale_pos_weight"] == 8.0

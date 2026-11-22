@@ -1,19 +1,23 @@
 """Gradient boosted trees with early stopping on the validation fold.
 
-XGBoost (Chen and Guestrin, 2016) is trained on the training fold, after any
-rebalancing, and the number of boosting rounds is chosen by early stopping on
-the untouched validation fold. Missing values are passed through, since the
-tree learner assigns them a default split direction; no imputation is needed
-for the point-in-time aggregates.
+XGBoost (Chen and Guestrin, 2016) and LightGBM (Ke et al., 2017) are trained
+on the training fold, after any rebalancing, and the number of boosting rounds
+is chosen by early stopping on the untouched validation fold. Missing values
+are passed through, since both learners assign them a default split direction;
+no imputation is needed for the point-in-time aggregates.
 
 The validation fold therefore serves two purposes: the stopping round and,
 later, the decision threshold. Both are low-dimensional choices, and the test
 fold is never used for either. The stopping metric is the area under the
-precision-recall curve (``aucpr``), which matches the primary evaluation metric.
+precision-recall curve (``aucpr`` in XGBoost, ``average_precision`` in
+LightGBM), which matches the primary evaluation metric.
+
+LightGBM is an optional dependency, installed with the ``gbm`` extra.
 """
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -36,6 +40,21 @@ XGBOOST_DEFAULTS: dict[str, Any] = {
     "n_jobs": -1,
 }
 
+LIGHTGBM_DEFAULTS: dict[str, Any] = {
+    "n_estimators": 2000,
+    "learning_rate": 0.05,
+    "num_leaves": 31,
+    "min_child_samples": 20,
+    "subsample": 0.8,
+    "subsample_freq": 1,
+    "colsample_bytree": 0.8,
+    "n_jobs": -1,
+    "verbose": -1,
+}
+
+# Set as the only metric so early stopping does not also track the log loss
+LIGHTGBM_METRIC = "average_precision"
+
 
 @dataclass(frozen=True)
 class BoostedModel:
@@ -44,7 +63,8 @@ class BoostedModel:
     Attributes
     ----------
     model
-        Fitted classifier. Predictions use the rounds up to ``best_iteration``.
+        Fitted scikit-learn style classifier (XGBoost, LightGBM, or CatBoost).
+        Its ``predict_proba`` uses the rounds up to ``best_iteration``.
     best_iteration
         Zero-based index of the best round on the validation fold.
     best_score
@@ -54,14 +74,25 @@ class BoostedModel:
         stop.
     """
 
-    model: XGBClassifier
+    model: Any
     best_iteration: int
     best_score: float
     validation_curve: np.ndarray
 
     def predict_scores(self, X: pd.DataFrame) -> np.ndarray:
         """Positive-class probability, using rounds up to the best iteration."""
-        return self.model.predict_proba(X)[:, 1]
+        return np.asarray(self.model.predict_proba(X)[:, 1], dtype="float64")
+
+
+def _merge_params(
+    defaults: Mapping[str, Any],
+    params: Mapping[str, Any] | None,
+    scale_pos_weight: float,
+    seed: int,
+) -> dict[str, Any]:
+    merged = {**defaults, "scale_pos_weight": scale_pos_weight, "random_state": seed}
+    merged.update(params or {})
+    return merged
 
 
 def xgboost_params(
@@ -86,13 +117,42 @@ def xgboost_params(
     dict
         Keyword arguments for :class:`xgboost.XGBClassifier`.
     """
-    merged = {
-        **XGBOOST_DEFAULTS,
-        "scale_pos_weight": scale_pos_weight,
-        "random_state": seed,
-    }
-    merged.update(params or {})
-    return merged
+    return _merge_params(XGBOOST_DEFAULTS, params, scale_pos_weight, seed)
+
+
+def lightgbm_params(
+    params: Mapping[str, Any] | None = None,
+    scale_pos_weight: float = 1.0,
+    seed: int = 0,
+) -> dict[str, Any]:
+    """Merge user parameters over :data:`LIGHTGBM_DEFAULTS`.
+
+    Parameters
+    ----------
+    params
+        Overrides of the LightGBM defaults.
+    scale_pos_weight
+        Positive class weight from the resampling step. An explicit
+        ``scale_pos_weight`` in ``params`` takes precedence.
+    seed
+        Random state, unless ``params`` sets ``random_state``.
+
+    Returns
+    -------
+    dict
+        Keyword arguments for ``lightgbm.LGBMClassifier``.
+    """
+    return _merge_params(LIGHTGBM_DEFAULTS, params, scale_pos_weight, seed)
+
+
+def check_fit_inputs(
+    train: ResampledFold, X_validation: pd.DataFrame, early_stopping_rounds: int
+) -> None:
+    """Validate the arguments shared by the early-stopped fitters."""
+    if early_stopping_rounds < 1:
+        raise ValueError("early_stopping_rounds must be at least 1.")
+    if list(X_validation.columns) != list(train.X.columns):
+        raise ValueError("Training and validation features must match in order.")
 
 
 def fit_xgboost(
@@ -125,11 +185,7 @@ def fit_xgboost(
     BoostedModel
         Fitted model, best round, and validation learning curve.
     """
-    if early_stopping_rounds < 1:
-        raise ValueError("early_stopping_rounds must be at least 1.")
-    if list(X_validation.columns) != list(train.X.columns):
-        raise ValueError("Training and validation features must match in order.")
-
+    check_fit_inputs(train, X_validation, early_stopping_rounds)
     kwargs = xgboost_params(params, train.scale_pos_weight, seed)
     model = XGBClassifier(early_stopping_rounds=early_stopping_rounds, **kwargs)
     model.fit(
@@ -147,5 +203,73 @@ def fit_xgboost(
         model=model,
         best_iteration=int(model.best_iteration),
         best_score=float(model.best_score),
+        validation_curve=curve,
+    )
+
+
+def _lightgbm_eval_kwargs(
+    model: Any, X_validation: pd.DataFrame, y_validation: pd.Series
+) -> dict[str, Any]:
+    # LightGBM 4.7 replaced eval_set with eval_X and eval_y
+    if "eval_X" in inspect.signature(model.fit).parameters:
+        return {"eval_X": (X_validation,), "eval_y": (y_validation,)}
+    return {"eval_set": [(X_validation, y_validation)]}
+
+
+def fit_lightgbm(
+    train: ResampledFold,
+    X_validation: pd.DataFrame,
+    y_validation: pd.Series,
+    params: Mapping[str, Any] | None = None,
+    early_stopping_rounds: int = 50,
+    seed: int = 0,
+) -> BoostedModel:
+    """Train LightGBM and stop when validation average precision stops improving.
+
+    Parameters
+    ----------
+    train
+        Training rows after rebalancing; its ``scale_pos_weight`` is used unless
+        ``params`` overrides it.
+    X_validation, y_validation
+        Validation fold at the observed class ratio.
+    params
+        Overrides of :data:`LIGHTGBM_DEFAULTS`. ``n_estimators`` is the upper
+        bound on boosting rounds.
+    early_stopping_rounds
+        Rounds without improvement before training stops.
+    seed
+        Random state of the booster.
+
+    Returns
+    -------
+    BoostedModel
+        Fitted model, best round, and validation learning curve.
+    """
+    import lightgbm as lgb
+
+    check_fit_inputs(train, X_validation, early_stopping_rounds)
+    kwargs = {
+        "metric": LIGHTGBM_METRIC,
+        **lightgbm_params(params, train.scale_pos_weight, seed),
+    }
+    history: dict[str, Any] = {}
+    model = lgb.LGBMClassifier(**kwargs)
+    model.fit(
+        train.X,
+        train.y,
+        **_lightgbm_eval_kwargs(model, X_validation, y_validation),
+        callbacks=[
+            lgb.early_stopping(early_stopping_rounds, verbose=False),
+            lgb.record_evaluation(history),
+        ],
+    )
+    curve = np.asarray(history["valid_0"][kwargs["metric"]], dtype="float64")
+    # LightGBM counts iterations from 1
+    best_iteration = int(model.best_iteration_) - 1
+    return BoostedModel(
+        model=model,
+        best_iteration=best_iteration,
+        best_score=float(curve[best_iteration]),
         validation_curve=curve,
     )
