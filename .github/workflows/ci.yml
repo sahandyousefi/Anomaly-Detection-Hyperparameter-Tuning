@@ -34,5 +34,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: pyproject.toml
-      - run: pip install -e ".[dev]"
+      # Optuna is light enough to keep the tuning tests in CI
+      - run: pip install -e ".[dev,tune]"
       - run: pytest --cov=fraud_detection --cov-report=term-missing

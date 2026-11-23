@@ -38,6 +38,9 @@ gbm = [
     "lightgbm>=4.0",
     "catboost>=1.2",
 ]
+tune = [
+    "optuna>=3.4",
+]
 
 [project.scripts]
 fraud-detection = "fraud_detection.cli:main"
