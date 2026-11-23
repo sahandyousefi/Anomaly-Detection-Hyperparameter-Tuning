@@ -67,7 +67,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 3: Hyperparameter optimization
 
-- [ ] Search spaces for LightGBM and CatBoost
 - [ ] Optimization history, parameter importance, and slice plots saved to `reports/figures/`
 - [ ] Nested evaluation so the final test fold is never seen during tuning
 
@@ -147,3 +146,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-23: `train.py` CLI entry point driven by config
 - [x] 2026-11-23: Optuna study for XGBoost with time-series cross-validation and PR-AUC objective
 - [x] 2026-11-23: Pruning with median pruner and persistent study storage (SQLite)
+- [x] 2026-11-23: Search spaces for LightGBM and CatBoost

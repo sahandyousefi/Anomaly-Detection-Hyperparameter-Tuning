@@ -1,4 +1,4 @@
-r"""Bayesian hyperparameter search for XGBoost with time-series cross-validation.
+r"""Bayesian hyperparameter search for boosted trees with time-series cross-validation.
 
 Hyperparameters are chosen with Optuna (Akiba et al., 2019) using the
 tree-structured Parzen estimator (Bergstra et al., 2011). Only the training
@@ -36,6 +36,14 @@ each fold. This makes the fold score mildly optimistic, by the same mechanism
 for every trial, so it does not favour particular parameters strongly; the
 final estimate of generalization comes from the untouched test period.
 
+Search spaces are defined for XGBoost, LightGBM, and CatBoost. Learning
+rates and regularization strengths are sampled on a log scale because their
+effect is multiplicative. The upper bound on boosting rounds is held fixed
+and early stopping chooses the actual number, so it is not a tuned
+parameter. The spaces cover the same three kinds of control in each library
+(tree complexity, row and column subsampling, and penalties on leaf weights
+or split gains), which keeps the comparison between families fair.
+
 References
 ----------
 Akiba, T., Sano, S., Yanase, T., Ohta, T., and Koyama, M. (2019). Optuna: A
@@ -46,6 +54,13 @@ hyper-parameter optimization. NeurIPS.
 
 Chen, T., and Guestrin, C. (2016). XGBoost: A scalable tree boosting system.
 KDD.
+
+Ke, G., Meng, Q., Finley, T., Wang, T., Chen, W., Ma, W., Ye, Q., and Liu,
+T.-Y. (2017). LightGBM: A highly efficient gradient boosting decision tree.
+NeurIPS.
+
+Prokhorenkova, L., Gusev, G., Vorobev, A., Dorogush, A. V., and Gulin, A.
+(2018). CatBoost: Unbiased boosting with categorical features. NeurIPS.
 """
 
 from __future__ import annotations
@@ -61,7 +76,7 @@ import pandas as pd
 from fraud_detection.config import ResamplingConfig
 from fraud_detection.data.resample import resample_training_fold
 from fraud_detection.evaluation.metrics import pr_auc
-from fraud_detection.models.gbm import fit_xgboost
+from fraud_detection.models.base import fit_model
 
 if TYPE_CHECKING:
     import optuna
@@ -139,10 +154,6 @@ def expanding_window_folds(
 def suggest_xgboost_params(trial: optuna.Trial) -> dict[str, Any]:
     """Sample one XGBoost configuration.
 
-    Learning rate and regularization strengths are sampled on a log scale,
-    since their effect is multiplicative. ``n_estimators`` is not tuned; it is
-    an upper bound and early stopping picks the number of rounds.
-
     Parameters
     ----------
     trial
@@ -167,6 +178,80 @@ def suggest_xgboost_params(trial: optuna.Trial) -> dict[str, Any]:
     }
 
 
+def suggest_lightgbm_params(trial: optuna.Trial) -> dict[str, Any]:
+    """Sample one LightGBM configuration.
+
+    LightGBM grows trees leaf-wise, so complexity is controlled by
+    ``num_leaves`` and the minimum leaf size rather than by depth.
+
+    Parameters
+    ----------
+    trial
+        Active Optuna trial.
+
+    Returns
+    -------
+    dict
+        Overrides of :data:`fraud_detection.models.gbm.LIGHTGBM_DEFAULTS`.
+    """
+    return {
+        "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.3, log=True),
+        "num_leaves": trial.suggest_int("num_leaves", 8, 256, log=True),
+        "min_child_samples": trial.suggest_int("min_child_samples", 5, 200, log=True),
+        "subsample": trial.suggest_float("subsample", 0.5, 1.0),
+        "colsample_bytree": trial.suggest_float("colsample_bytree", 0.4, 1.0),
+        "min_split_gain": trial.suggest_float("min_split_gain", 1e-3, 1.0, log=True),
+        "reg_lambda": trial.suggest_float("reg_lambda", 1e-3, 100.0, log=True),
+        "reg_alpha": trial.suggest_float("reg_alpha", 1e-3, 10.0, log=True),
+    }
+
+
+def suggest_catboost_params(trial: optuna.Trial) -> dict[str, Any]:
+    """Sample one CatBoost configuration.
+
+    CatBoost builds symmetric (oblivious) trees, so ``depth`` sets both the
+    number of leaves and the interaction order. Bernoulli row sampling is
+    fixed so that ``subsample`` has an effect.
+
+    Parameters
+    ----------
+    trial
+        Active Optuna trial.
+
+    Returns
+    -------
+    dict
+        Overrides of :data:`fraud_detection.models.gbm.CATBOOST_DEFAULTS`.
+    """
+    return {
+        "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.3, log=True),
+        "depth": trial.suggest_int("depth", 4, 10),
+        "l2_leaf_reg": trial.suggest_float("l2_leaf_reg", 0.5, 50.0, log=True),
+        "random_strength": trial.suggest_float("random_strength", 1e-2, 10.0, log=True),
+        "bootstrap_type": "Bernoulli",
+        "subsample": trial.suggest_float("subsample", 0.5, 1.0),
+    }
+
+
+SearchSpace = Callable[["optuna.Trial"], dict[str, Any]]
+
+SEARCH_SPACES: dict[str, SearchSpace] = {
+    "xgboost": suggest_xgboost_params,
+    "lightgbm": suggest_lightgbm_params,
+    "catboost": suggest_catboost_params,
+}
+
+
+def _search_space(model_name: str) -> SearchSpace:
+    try:
+        return SEARCH_SPACES[model_name]
+    except KeyError as exc:
+        known = ", ".join(sorted(SEARCH_SPACES))
+        raise ValueError(
+            f"No search space for {model_name!r}; expected one of: {known}."
+        ) from exc
+
+
 @dataclass(frozen=True)
 class FoldScore:
     """Validation result of one fold within a trial."""
@@ -183,8 +268,9 @@ def score_fold(
     resampling: ResamplingConfig,
     early_stopping_rounds: int = 50,
     seed: int = 0,
+    model_name: str = "xgboost",
 ) -> FoldScore:
-    """Fit XGBoost on a fold's training window and score its next block.
+    """Fit a booster on a fold's training window and score its next block.
 
     Parameters
     ----------
@@ -193,13 +279,15 @@ def score_fold(
     fold
         Positional indices of the training window and the scored block.
     params
-        XGBoost parameters for this trial.
+        Booster parameters for this trial.
     resampling
         Rebalancing applied to the training window only.
     early_stopping_rounds
         Patience of early stopping on the scored block.
     seed
         Random state of the sampler and the booster.
+    model_name
+        Model family in :data:`fraud_detection.models.base.MODEL_REGISTRY`.
 
     Returns
     -------
@@ -210,10 +298,17 @@ def score_fold(
         X.iloc[fold.train], y.iloc[fold.train], resampling, seed
     )
     X_val, y_val = X.iloc[fold.validation], y.iloc[fold.validation]
-    model = fit_xgboost(train, X_val, y_val, params, early_stopping_rounds, seed)
+    model = fit_model(
+        model_name,
+        train,
+        X_val,
+        y_val,
+        {**params, "early_stopping_rounds": early_stopping_rounds},
+        seed=seed,
+    )
     return FoldScore(
         pr_auc=pr_auc(y_val, model.predict_scores(X_val)),
-        best_iteration=model.best_iteration,
+        best_iteration=int(getattr(model, "best_iteration", -1)),
     )
 
 
@@ -225,7 +320,8 @@ def make_objective(
     fixed_params: Mapping[str, Any] | None = None,
     early_stopping_rounds: int = 50,
     seed: int = 0,
-    search_space: Callable[[optuna.Trial], dict[str, Any]] = suggest_xgboost_params,
+    model_name: str = "xgboost",
+    search_space: SearchSpace | None = None,
 ) -> Callable[[optuna.Trial], float]:
     """Build the Optuna objective: mean PR-AUC over expanding-window folds.
 
@@ -244,8 +340,11 @@ def make_objective(
         Patience of early stopping.
     seed
         Random state for every fold fit.
+    model_name
+        Model family to tune.
     search_space
-        Function sampling the tuned parameters from a trial.
+        Function sampling the tuned parameters from a trial. Defaults to the
+        entry of :data:`SEARCH_SPACES` for ``model_name``.
 
     Returns
     -------
@@ -256,16 +355,17 @@ def make_objective(
     """
     if not folds:
         raise ValueError("At least one fold is required.")
+    sample = search_space or _search_space(model_name)
 
     def objective(trial: optuna.Trial) -> float:
         import optuna
 
-        params = {**(fixed_params or {}), **search_space(trial)}
+        params = {**(fixed_params or {}), **sample(trial)}
         values: list[float] = []
         rounds: list[int] = []
         for k, fold in enumerate(folds):
             score = score_fold(
-                X, y, fold, params, resampling, early_stopping_rounds, seed
+                X, y, fold, params, resampling, early_stopping_rounds, seed, model_name
             )
             values.append(score.pr_auc)
             rounds.append(score.best_iteration)
@@ -322,7 +422,8 @@ def median_pruner(n_startup_trials: int = 5, n_warmup_steps: int = 1) -> Any:
     )
 
 
-def tune_xgboost(
+def tune_model(
+    model_name: str,
     X: pd.DataFrame,
     y: pd.Series,
     steps: pd.Series | np.ndarray,
@@ -333,15 +434,17 @@ def tune_xgboost(
     fixed_params: Mapping[str, Any] | None = None,
     early_stopping_rounds: int = 50,
     timeout: float | None = None,
-    study_name: str = "xgboost_pr_auc",
+    study_name: str | None = None,
     storage: str | None = None,
     pruner: optuna.pruners.BasePruner | None = None,
     seed: int = 0,
 ) -> optuna.Study:
-    """Run a TPE search for XGBoost on the tuning period.
+    """Run a TPE search for one model family on the tuning period.
 
     Parameters
     ----------
+    model_name
+        Key of :data:`SEARCH_SPACES`.
     X, y
         Features and labels of the training and validation periods, sorted by
         time. Test rows must not be passed.
@@ -360,7 +463,8 @@ def tune_xgboost(
     timeout
         Optional wall-clock limit in seconds.
     study_name
-        Name of the study. With persistent storage, an existing study of this
+        Name of the study, ``<model_name>_pr_auc`` by default. With persistent
+        storage, an existing study of this
         name is loaded and extended by ``n_trials``.
     storage
         Optuna storage URL, for example from :func:`sqlite_storage`. The study
@@ -380,15 +484,33 @@ def tune_xgboost(
 
     folds = expanding_window_folds(steps, n_splits, gap_steps)
     objective = make_objective(
-        X, y, folds, resampling, fixed_params, early_stopping_rounds, seed
+        X,
+        y,
+        folds,
+        resampling,
+        fixed_params,
+        early_stopping_rounds,
+        seed,
+        model_name=model_name,
     )
     study = optuna.create_study(
         direction="maximize",
         sampler=optuna.samplers.TPESampler(seed=seed),
         pruner=pruner if pruner is not None else median_pruner(),
-        study_name=study_name,
+        study_name=study_name or f"{model_name}_pr_auc",
         storage=storage,
         load_if_exists=storage is not None,
     )
     study.optimize(objective, n_trials=n_trials, timeout=timeout)
     return study
+
+
+def tune_xgboost(
+    X: pd.DataFrame,
+    y: pd.Series,
+    steps: pd.Series | np.ndarray,
+    resampling: ResamplingConfig,
+    **kwargs: Any,
+) -> optuna.Study:
+    """Run :func:`tune_model` for XGBoost; keyword arguments are passed through."""
+    return tune_model("xgboost", X, y, steps, resampling, **kwargs)

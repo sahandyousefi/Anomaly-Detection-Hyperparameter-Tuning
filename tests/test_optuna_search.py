@@ -147,3 +147,51 @@ def test_sqlite_storage_resumes_study(tuning_data, tmp_path) -> None:
     study = tune_xgboost(X, y, steps, n_trials=1, **kwargs)
     assert len(study.trials) == 3
     assert (tmp_path / "studies" / "xgb.db").stat().st_size > 0
+
+
+@pytest.mark.parametrize(
+    ("model_name", "fixed", "expected"),
+    [
+        ("lightgbm", {"n_estimators": 40, "n_jobs": 1}, {"num_leaves", "reg_alpha"}),
+        ("catboost", {"n_estimators": 40, "thread_count": 1}, {"depth", "subsample"}),
+    ],
+)
+def test_tune_other_boosters(tuning_data, model_name, fixed, expected) -> None:
+    pytest.importorskip("optuna")
+    pytest.importorskip(model_name)
+    from fraud_detection.tuning.optuna_search import tune_model
+
+    X, y, steps = tuning_data
+    study = tune_model(
+        model_name,
+        X,
+        y,
+        steps,
+        ResamplingConfig("class_weight", 0.2),
+        n_trials=2,
+        n_splits=2,
+        fixed_params=fixed,
+        early_stopping_rounds=10,
+    )
+    assert study.study_name == f"{model_name}_pr_auc"
+    assert len(study.trials) == 2
+    assert expected <= set(study.best_params)
+    assert 0 < study.best_value <= 1
+    assert all(r >= 0 for r in study.best_trial.user_attrs["fold_best_iteration"])
+
+
+def test_search_spaces_cover_registry_boosters() -> None:
+    from fraud_detection.models.base import MODEL_REGISTRY
+    from fraud_detection.tuning.optuna_search import SEARCH_SPACES
+
+    assert set(SEARCH_SPACES) <= set(MODEL_REGISTRY)
+    assert {"xgboost", "lightgbm", "catboost"} == set(SEARCH_SPACES)
+
+
+def test_unknown_model_has_no_search_space(tuning_data) -> None:
+    pytest.importorskip("optuna")
+    from fraud_detection.tuning.optuna_search import tune_model
+
+    X, y, steps = tuning_data
+    with pytest.raises(ValueError, match="No search space"):
+        tune_model("logistic_regression", X, y, steps, ResamplingConfig("none"))
