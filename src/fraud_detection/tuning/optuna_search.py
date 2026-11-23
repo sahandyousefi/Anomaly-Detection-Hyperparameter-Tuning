@@ -22,6 +22,15 @@ where :math:`\hat{s}_\theta^{(k)}` are the scores of the model fitted on fold
 :math:`k`. Rebalancing is applied inside each fold to the training window
 only, and the scored block keeps its observed class ratio.
 
+Unpromising trials are stopped early by a median pruner. After fold
+:math:`k` a trial reports its running mean
+:math:`\bar{J}_k = k^{-1} \sum_{j \le k} \mathrm{AP}_j`, and it is pruned when
+:math:`\bar{J}_k` falls below the median of the running means that earlier
+trials reported at the same fold. Folds differ in difficulty, but every trial
+is compared with others at the same fold, so this does not bias the
+comparison. Studies can be stored in SQLite, which lets a search be resumed
+or extended and keeps every trial for the optimization plots.
+
 The number of boosting rounds is set by early stopping on the scored block of
 each fold. This makes the fold score mildly optimistic, by the same mechanism
 for every trial, so it does not favour particular parameters strongly; the
@@ -43,6 +52,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -241,24 +251,75 @@ def make_objective(
     -------
     callable
         Objective to maximize. Per-fold PR-AUC and best rounds are stored as
-        trial user attributes.
+        trial user attributes, and the running mean is reported after every
+        fold so that a pruner can stop the trial.
     """
     if not folds:
         raise ValueError("At least one fold is required.")
 
     def objective(trial: optuna.Trial) -> float:
+        import optuna
+
         params = {**(fixed_params or {}), **search_space(trial)}
-        scores = [
-            score_fold(X, y, fold, params, resampling, early_stopping_rounds, seed)
-            for fold in folds
-        ]
-        values = [s.pr_auc for s in scores]
-        trial.set_user_attr("fold_pr_auc", values)
-        trial.set_user_attr("fold_best_iteration", [s.best_iteration for s in scores])
+        values: list[float] = []
+        rounds: list[int] = []
+        for k, fold in enumerate(folds):
+            score = score_fold(
+                X, y, fold, params, resampling, early_stopping_rounds, seed
+            )
+            values.append(score.pr_auc)
+            rounds.append(score.best_iteration)
+            trial.set_user_attr("fold_pr_auc", list(values))
+            trial.set_user_attr("fold_best_iteration", list(rounds))
+            trial.report(float(np.mean(values)), step=k)
+            if k < len(folds) - 1 and trial.should_prune():
+                raise optuna.TrialPruned(f"Pruned after fold {k + 1}.")
         trial.set_user_attr("pr_auc_std", float(np.std(values)))
         return float(np.mean(values))
 
     return objective
+
+
+def sqlite_storage(path: str | Path) -> str:
+    """SQLAlchemy URL of a SQLite file for Optuna study storage.
+
+    Parameters
+    ----------
+    path
+        Database file; its parent directory is created if missing.
+
+    Returns
+    -------
+    str
+        URL of the form ``sqlite:///<absolute path>``.
+    """
+    path = Path(path).resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return f"sqlite:///{path.as_posix()}"
+
+
+def median_pruner(n_startup_trials: int = 5, n_warmup_steps: int = 1) -> Any:
+    """Median pruner that waits for a few complete trials and folds.
+
+    Parameters
+    ----------
+    n_startup_trials
+        Trials that always run to completion, so the median has a reference.
+    n_warmup_steps
+        Number of leading folds whose reports are exempt from pruning. A
+        single fold is a noisy estimate with few positives, so by default a
+        trial can be pruned only after its second fold.
+
+    Returns
+    -------
+    optuna.pruners.MedianPruner
+        Configured pruner.
+    """
+    import optuna
+
+    return optuna.pruners.MedianPruner(
+        n_startup_trials=n_startup_trials, n_warmup_steps=n_warmup_steps
+    )
 
 
 def tune_xgboost(
@@ -273,6 +334,8 @@ def tune_xgboost(
     early_stopping_rounds: int = 50,
     timeout: float | None = None,
     study_name: str = "xgboost_pr_auc",
+    storage: str | None = None,
+    pruner: optuna.pruners.BasePruner | None = None,
     seed: int = 0,
 ) -> optuna.Study:
     """Run a TPE search for XGBoost on the tuning period.
@@ -297,14 +360,21 @@ def tune_xgboost(
     timeout
         Optional wall-clock limit in seconds.
     study_name
-        Name recorded on the study.
+        Name of the study. With persistent storage, an existing study of this
+        name is loaded and extended by ``n_trials``.
+    storage
+        Optuna storage URL, for example from :func:`sqlite_storage`. The study
+        is kept in memory when ``None``.
+    pruner
+        Trial pruner. Defaults to :func:`median_pruner`.
     seed
         Seed of the TPE sampler and of every fold fit.
 
     Returns
     -------
     optuna.Study
-        Completed study; ``best_params`` holds the sampled parameters only.
+        Study after the new trials; ``best_params`` holds the sampled
+        parameters only.
     """
     import optuna
 
@@ -315,7 +385,10 @@ def tune_xgboost(
     study = optuna.create_study(
         direction="maximize",
         sampler=optuna.samplers.TPESampler(seed=seed),
+        pruner=pruner if pruner is not None else median_pruner(),
         study_name=study_name,
+        storage=storage,
+        load_if_exists=storage is not None,
     )
     study.optimize(objective, n_trials=n_trials, timeout=timeout)
     return study

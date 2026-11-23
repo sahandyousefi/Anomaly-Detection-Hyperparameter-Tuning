@@ -94,3 +94,56 @@ def test_search_is_reproducible(tuning_data) -> None:
     b = tune_xgboost(X, y, steps, **kwargs)
     assert [t.params for t in a.trials] == [t.params for t in b.trials]
     assert [t.value for t in a.trials] == pytest.approx([t.value for t in b.trials])
+
+
+def test_pruned_trials_stop_after_first_fold(tuning_data) -> None:
+    optuna = pytest.importorskip("optuna")
+    from fraud_detection.tuning.optuna_search import tune_xgboost
+
+    X, y, steps = tuning_data
+    # PR-AUC never exceeds 1, so this pruner stops every trial at its first report
+    pruner = optuna.pruners.ThresholdPruner(lower=1.1)
+    study = tune_xgboost(
+        X,
+        y,
+        steps,
+        ResamplingConfig("none"),
+        n_trials=2,
+        n_splits=3,
+        fixed_params=FIXED,
+        early_stopping_rounds=10,
+        pruner=pruner,
+    )
+    states = {t.state for t in study.trials}
+    assert states == {optuna.trial.TrialState.PRUNED}
+    assert all(len(t.user_attrs["fold_pr_auc"]) == 1 for t in study.trials)
+
+
+def test_median_pruner_defaults() -> None:
+    optuna = pytest.importorskip("optuna")
+    from fraud_detection.tuning.optuna_search import median_pruner
+
+    pruner = median_pruner()
+    assert isinstance(pruner, optuna.pruners.MedianPruner)
+
+
+def test_sqlite_storage_resumes_study(tuning_data, tmp_path) -> None:
+    pytest.importorskip("optuna")
+    from fraud_detection.tuning.optuna_search import sqlite_storage, tune_xgboost
+
+    X, y, steps = tuning_data
+    storage = sqlite_storage(tmp_path / "studies" / "xgb.db")
+    assert storage.startswith("sqlite:///")
+    assert (tmp_path / "studies").is_dir()
+    kwargs = {
+        "resampling": ResamplingConfig("none"),
+        "n_splits": 2,
+        "fixed_params": FIXED,
+        "early_stopping_rounds": 10,
+        "storage": storage,
+        "study_name": "resume",
+    }
+    tune_xgboost(X, y, steps, n_trials=2, **kwargs)
+    study = tune_xgboost(X, y, steps, n_trials=1, **kwargs)
+    assert len(study.trials) == 3
+    assert (tmp_path / "studies" / "xgb.db").stat().st_size > 0
