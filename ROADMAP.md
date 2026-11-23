@@ -63,7 +63,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 2: Modeling and evaluation
 
-- [ ] Probability calibration (isotonic and Platt) with reliability plots and Brier score
 - [ ] `train.py` CLI entry point driven by config
 
 ## Phase 3: Hyperparameter optimization
@@ -146,3 +145,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-22: Common model interface (`models/base.py`) with a LightGBM alternative
 - [x] 2026-11-22: CatBoost alternative behind the common model interface
 - [x] 2026-11-23: Class weighting (`scale_pos_weight`) compared against undersampling and SMOTE
+- [x] 2026-11-23: Probability calibration (isotonic and Platt) with reliability plots and Brier score
