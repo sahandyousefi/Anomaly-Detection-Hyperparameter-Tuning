@@ -39,6 +39,9 @@ gbm = [
     "catboost>=1.2",
 ]
 
+[project.scripts]
+fraud-detection = "fraud_detection.cli:main"
+
 [project.urls]
 Repository = "https://github.com/sahandyousefi/Anomaly-Detection-Hyperparameter-Tuning"
 

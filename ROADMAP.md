@@ -24,7 +24,8 @@ Anomaly-Detection-Hyperparameter-Tuning/
 |-- src/fraud_detection/
 |   |-- __init__.py
 |   |-- config.py
-|   |-- cli.py
+|   |-- cli.py                     # fraud-detection console script
+|   |-- train.py                   # config-driven training and evaluation run
 |   |-- data/                      # load.py, split.py, resample.py, synthetic.py
 |   |-- features/                  # build.py
 |   |-- models/                    # base.py, baselines.py, gbm.py, autoencoder.py, sequence.py
@@ -63,7 +64,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 2: Modeling and evaluation
 
-- [ ] `train.py` CLI entry point driven by config
 
 ## Phase 3: Hyperparameter optimization
 
@@ -146,3 +146,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-22: CatBoost alternative behind the common model interface
 - [x] 2026-11-23: Class weighting (`scale_pos_weight`) compared against undersampling and SMOTE
 - [x] 2026-11-23: Probability calibration (isotonic and Platt) with reliability plots and Brier score
+- [x] 2026-11-23: `train.py` CLI entry point driven by config
