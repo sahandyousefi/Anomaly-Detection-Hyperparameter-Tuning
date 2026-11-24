@@ -9,8 +9,8 @@ row with higher meaning more likely fraud. Threshold selection, evaluation,
 and explanation code only depend on this interface, so model families can be
 swapped through ``config.model.name``.
 
-Models that do not early-stop (the logistic regression baseline) accept the
-validation fold and ignore it.
+Models that do not early-stop (the logistic regression baseline and the
+unsupervised detectors) accept the validation fold and ignore it.
 """
 
 from __future__ import annotations
@@ -106,11 +106,44 @@ def _fit_catboost(
     return fit_catboost(train, X_validation, y_validation, params, patience, seed)
 
 
+def _fit_isolation_forest(
+    train: ResampledFold,
+    X_validation: pd.DataFrame,
+    y_validation: pd.Series,
+    params: Mapping[str, Any] | None = None,
+    seed: int = 0,
+) -> FraudModel:
+    from fraud_detection.models.unsupervised import fit_isolation_forest
+
+    params = dict(params or {})
+    max_rows = params.pop("max_rows", None)
+    return fit_isolation_forest(train, params, max_rows, seed)
+
+
+def _fit_local_outlier_factor(
+    train: ResampledFold,
+    X_validation: pd.DataFrame,
+    y_validation: pd.Series,
+    params: Mapping[str, Any] | None = None,
+    seed: int = 0,
+) -> FraudModel:
+    from fraud_detection.models.unsupervised import (
+        DEFAULT_MAX_REFERENCE_ROWS,
+        fit_local_outlier_factor,
+    )
+
+    params = dict(params or {})
+    max_rows = params.pop("max_rows", DEFAULT_MAX_REFERENCE_ROWS)
+    return fit_local_outlier_factor(train, params, max_rows, seed)
+
+
 MODEL_REGISTRY: dict[str, FitFunction] = {
     "logistic_regression": _fit_logistic_regression,
     "xgboost": _fit_xgboost,
     "lightgbm": _fit_lightgbm,
     "catboost": _fit_catboost,
+    "isolation_forest": _fit_isolation_forest,
+    "local_outlier_factor": _fit_local_outlier_factor,
 }
 
 

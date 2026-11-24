@@ -28,7 +28,8 @@ Anomaly-Detection-Hyperparameter-Tuning/
 |   |-- train.py                   # config-driven training and evaluation run
 |   |-- data/                      # load.py, split.py, resample.py, synthetic.py
 |   |-- features/                  # build.py
-|   |-- models/                    # base.py, baselines.py, gbm.py, autoencoder.py, sequence.py
+|   |-- models/                    # base.py, baselines.py, gbm.py, unsupervised.py,
+|   |                              # autoencoder.py, sequence.py
 |   |-- tuning/                    # optuna_search.py, study_plots.py, nested_cv.py
 |   |-- evaluation/                # metrics.py, thresholds.py, calibration.py,
 |   |                              # resampling_comparison.py
@@ -70,7 +71,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 4: Unsupervised and deep learning anomaly detection
 
-- [ ] Isolation Forest and Local Outlier Factor baselines trained on legitimate transactions only
 - [ ] PyTorch tabular autoencoder with reconstruction-error scoring
 - [ ] Variational autoencoder variant
 - [ ] Sequence model (GRU) over each account's transaction history
@@ -147,3 +147,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-23: Search spaces for LightGBM and CatBoost
 - [x] 2026-11-24: Optimization history, parameter importance, and slice plots saved to `reports/figures/`
 - [x] 2026-11-24: Nested evaluation so the final test fold is never seen during tuning
+- [x] 2026-11-24: Isolation Forest and Local Outlier Factor baselines trained on legitimate transactions only
