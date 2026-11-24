@@ -71,7 +71,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 4: Unsupervised and deep learning anomaly detection
 
-- [ ] Variational autoencoder variant
 - [ ] Sequence model (GRU) over each account's transaction history
 - [ ] Feed-forward network with focal loss for supervised comparison
 - [ ] Hybrid model: autoencoder reconstruction error as a feature for gradient boosting
@@ -148,3 +147,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-24: Nested evaluation so the final test fold is never seen during tuning
 - [x] 2026-11-24: Isolation Forest and Local Outlier Factor baselines trained on legitimate transactions only
 - [x] 2026-11-24: PyTorch tabular autoencoder with reconstruction-error scoring
+- [x] 2026-11-24: Variational autoencoder variant

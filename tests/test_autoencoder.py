@@ -12,6 +12,7 @@ torch = pytest.importorskip("torch")
 
 from fraud_detection.models.autoencoder import (  # noqa: E402
     AutoencoderParams,
+    VariationalAutoencoder,
     build_autoencoder,
     fit_autoencoder,
 )
@@ -57,10 +58,9 @@ def test_training_reduces_holdout_loss(folds) -> None:
     assert model.reference_scores.size == round(0.1 * n_legit)
 
 
-def test_autoencoder_through_interface(folds) -> None:
-    model = fit_model(
-        "autoencoder", folds.train, folds.X_validation, folds.y_validation, FAST
-    )
+@pytest.mark.parametrize("name", ["autoencoder", "variational_autoencoder"])
+def test_autoencoder_through_interface(folds, name) -> None:
+    model = fit_model(name, folds.train, folds.X_validation, folds.y_validation, FAST)
     scores = model.predict_scores(folds.X_test)
     assert scores.shape == (len(folds.X_test),)
     assert scores.min() >= 0
@@ -71,9 +71,11 @@ def test_autoencoder_through_interface(folds) -> None:
     assert np.all(np.diff(scores[order]) >= 0)
 
 
-def test_training_is_reproducible(folds) -> None:
-    a = fit_autoencoder(folds.train, FAST, seed=3)
-    b = fit_autoencoder(folds.train, FAST, seed=3)
+@pytest.mark.parametrize("variational", [False, True])
+def test_training_is_reproducible(folds, variational) -> None:
+    params = {**FAST, "variational": variational}
+    a = fit_autoencoder(folds.train, params, seed=3)
+    b = fit_autoencoder(folds.train, params, seed=3)
     np.testing.assert_allclose(
         a.anomaly_scores(folds.X_test), b.anomaly_scores(folds.X_test), rtol=1e-6
     )
@@ -88,3 +90,37 @@ def test_early_stopping_respects_patience(folds) -> None:
 def test_invalid_holdout_fraction(folds) -> None:
     with pytest.raises(ValueError, match="validation_fraction"):
         fit_autoencoder(folds.train, {**FAST, "validation_fraction": 1.0})
+
+
+def test_vae_architecture_and_heads() -> None:
+    params = AutoencoderParams(hidden_dims=(32, 16), latent_dim=4, variational=True)
+    net = build_autoencoder(20, params)
+    assert isinstance(net, VariationalAutoencoder)
+    batch = torch.randn(7, 20)
+    mean, log_var = net.encode(batch)
+    assert mean.shape == log_var.shape == (7, 4)
+    dec = [m.out_features for m in net.decoder if isinstance(m, torch.nn.Linear)]
+    assert dec == [16, 32, 20]
+
+
+def test_vae_row_loss_matches_closed_form() -> None:
+    torch.manual_seed(0)
+    params = AutoencoderParams(hidden_dims=(8,), latent_dim=2, beta=0.5)
+    net = VariationalAutoencoder(5, params).eval()
+    batch = torch.randn(3, 5)
+    with torch.no_grad():
+        mean, log_var = net.encode(batch)
+        recon = ((batch - net.decoder(mean)) ** 2).sum(dim=1)
+        kl = 0.5 * (mean**2 + log_var.exp() - log_var - 1).sum(dim=1)
+        expected = (recon + 0.5 * kl) / 5
+        np.testing.assert_allclose(net.row_loss(batch), expected, rtol=1e-6)
+        assert torch.all(kl >= 0)
+
+
+def test_vae_scoring_is_deterministic(folds) -> None:
+    model = fit_autoencoder(folds.train, {**FAST, "variational": True}, seed=1)
+    np.testing.assert_array_equal(
+        model.anomaly_scores(folds.X_test), model.anomaly_scores(folds.X_test)
+    )
+    best = min(h["holdout_loss"] for h in model.detector.history)
+    assert best < model.detector.history[0]["holdout_loss"]

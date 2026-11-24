@@ -149,6 +149,18 @@ def _fit_autoencoder(
     return fit_autoencoder(train, params, seed)
 
 
+def _fit_variational_autoencoder(
+    train: ResampledFold,
+    X_validation: pd.DataFrame,
+    y_validation: pd.Series,
+    params: Mapping[str, Any] | None = None,
+    seed: int = 0,
+) -> FraudModel:
+    from fraud_detection.models.autoencoder import fit_variational_autoencoder
+
+    return fit_variational_autoencoder(train, params, seed)
+
+
 MODEL_REGISTRY: dict[str, FitFunction] = {
     "logistic_regression": _fit_logistic_regression,
     "xgboost": _fit_xgboost,
@@ -157,6 +169,7 @@ MODEL_REGISTRY: dict[str, FitFunction] = {
     "isolation_forest": _fit_isolation_forest,
     "local_outlier_factor": _fit_local_outlier_factor,
     "autoencoder": _fit_autoencoder,
+    "variational_autoencoder": _fit_variational_autoencoder,
 }
 
 
