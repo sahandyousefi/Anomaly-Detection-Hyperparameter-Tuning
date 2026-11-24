@@ -29,7 +29,7 @@ Anomaly-Detection-Hyperparameter-Tuning/
 |   |-- data/                      # load.py, split.py, resample.py, synthetic.py
 |   |-- features/                  # build.py
 |   |-- models/                    # base.py, baselines.py, gbm.py, autoencoder.py, sequence.py
-|   |-- tuning/                    # optuna_search.py, study_plots.py
+|   |-- tuning/                    # optuna_search.py, study_plots.py, nested_cv.py
 |   |-- evaluation/                # metrics.py, thresholds.py, calibration.py,
 |   |                              # resampling_comparison.py
 |   |-- explain/                   # shap_analysis.py, reason_codes.py
@@ -67,7 +67,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 3: Hyperparameter optimization
 
-- [ ] Nested evaluation so the final test fold is never seen during tuning
 
 ## Phase 4: Unsupervised and deep learning anomaly detection
 
@@ -147,3 +146,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-23: Pruning with median pruner and persistent study storage (SQLite)
 - [x] 2026-11-23: Search spaces for LightGBM and CatBoost
 - [x] 2026-11-24: Optimization history, parameter importance, and slice plots saved to `reports/figures/`
+- [x] 2026-11-24: Nested evaluation so the final test fold is never seen during tuning
