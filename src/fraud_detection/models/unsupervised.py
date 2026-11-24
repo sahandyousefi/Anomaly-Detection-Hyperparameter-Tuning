@@ -144,6 +144,36 @@ def _imputer() -> SimpleImputer:
     return SimpleImputer(strategy="median", add_indicator=True)
 
 
+def make_gaussianizer(n_rows: int, seed: int = 0) -> Pipeline:
+    """Unfitted median imputation followed by a per-feature normal-score transform.
+
+    Parameters
+    ----------
+    n_rows
+        Number of rows the transformer will be fitted on; caps the quantiles.
+    seed
+        Random state of the quantile subsample.
+
+    Returns
+    -------
+    sklearn.pipeline.Pipeline
+        Steps ``impute`` and ``gaussianize``.
+    """
+    return Pipeline(
+        [
+            ("impute", _imputer()),
+            (
+                "gaussianize",
+                QuantileTransformer(
+                    n_quantiles=max(2, min(1000, n_rows)),
+                    output_distribution="normal",
+                    random_state=seed,
+                ),
+            ),
+        ]
+    )
+
+
 def fit_isolation_forest(
     train: ResampledFold,
     params: Mapping[str, Any] | None = None,
@@ -205,19 +235,7 @@ def fit_local_outlier_factor(
         Fitted detector.
     """
     X = legitimate_rows(train, max_rows, seed)
-    preprocess = Pipeline(
-        [
-            ("impute", _imputer()),
-            (
-                "gaussianize",
-                QuantileTransformer(
-                    n_quantiles=min(1000, len(X)),
-                    output_distribution="normal",
-                    random_state=seed,
-                ),
-            ),
-        ]
-    ).fit(X)
+    preprocess = make_gaussianizer(len(X), seed).fit(X)
     lof = LocalOutlierFactor(**{**LOF_DEFAULTS, **(params or {})}, novelty=True)
     lof.fit(preprocess.transform(X))
     # score_samples on the reference rows would count each row as its own neighbour

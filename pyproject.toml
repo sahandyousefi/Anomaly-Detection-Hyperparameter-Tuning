@@ -41,6 +41,9 @@ gbm = [
 tune = [
     "optuna>=3.4",
 ]
+dl = [
+    "torch>=2.1",
+]
 
 [project.scripts]
 fraud-detection = "fraud_detection.cli:main"

@@ -137,6 +137,18 @@ def _fit_local_outlier_factor(
     return fit_local_outlier_factor(train, params, max_rows, seed)
 
 
+def _fit_autoencoder(
+    train: ResampledFold,
+    X_validation: pd.DataFrame,
+    y_validation: pd.Series,
+    params: Mapping[str, Any] | None = None,
+    seed: int = 0,
+) -> FraudModel:
+    from fraud_detection.models.autoencoder import fit_autoencoder
+
+    return fit_autoencoder(train, params, seed)
+
+
 MODEL_REGISTRY: dict[str, FitFunction] = {
     "logistic_regression": _fit_logistic_regression,
     "xgboost": _fit_xgboost,
@@ -144,6 +156,7 @@ MODEL_REGISTRY: dict[str, FitFunction] = {
     "catboost": _fit_catboost,
     "isolation_forest": _fit_isolation_forest,
     "local_outlier_factor": _fit_local_outlier_factor,
+    "autoencoder": _fit_autoencoder,
 }
 
 
