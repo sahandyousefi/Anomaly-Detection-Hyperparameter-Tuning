@@ -13,9 +13,13 @@ data:
   drop_columns: [isFlaggedFraud]
 
 # Set balance_features to false to measure how much the model relies on the
-# balance reconciliation residuals, which are partly a simulator artifact
+# balance reconciliation residuals, which are partly a simulator artifact.
+# history_length > 0 appends each account's most recent earlier transactions
+# as lag columns; the GRU model requires it.
 features:
   balance_features: true
+  history_length: 0
+  history_roles: [orig, dest]
 
 # Fractions refer to the ordered range of hourly steps, not to row counts
 split:

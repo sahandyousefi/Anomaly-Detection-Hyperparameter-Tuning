@@ -35,9 +35,22 @@ class DataConfig:
 
 @dataclass(frozen=True)
 class FeaturesConfig:
-    """Switches for optional feature groups, used for ablation runs."""
+    """Switches for optional feature groups, used for ablation runs.
+
+    ``history_length`` is the number of earlier transactions of each account
+    in ``history_roles`` that are appended as lag columns; zero disables them.
+    """
 
     balance_features: bool = True
+    history_length: int = 0
+    history_roles: tuple[str, ...] = ("orig", "dest")
+
+    def __post_init__(self) -> None:
+        if self.history_length < 0:
+            raise ConfigError("history_length must be non-negative.")
+        unknown = set(self.history_roles) - {"orig", "dest"}
+        if unknown:
+            raise ConfigError(f"Unknown history roles: {sorted(unknown)}.")
 
 
 @dataclass(frozen=True)
@@ -144,6 +157,10 @@ def config_from_dict(raw: Mapping[str, Any], base_dir: Path | None = None) -> Co
     for key in ("id_columns", "drop_columns"):
         data[key] = tuple(data.get(key) or ())
 
+    features = dict(raw.get("features") or {})
+    if "history_roles" in features:
+        features["history_roles"] = tuple(features["history_roles"])
+
     model = dict(_section(raw, "model"))
     model["params"] = dict(model.get("params") or {})
 
@@ -151,7 +168,7 @@ def config_from_dict(raw: Mapping[str, Any], base_dir: Path | None = None) -> Co
         seed=int(raw.get("seed", 42)),
         paths=_build(PathsConfig, paths, "paths"),
         data=_build(DataConfig, data, "data"),
-        features=_build(FeaturesConfig, raw.get("features") or {}, "features"),
+        features=_build(FeaturesConfig, features, "features"),
         split=_build(SplitConfig, _section(raw, "split"), "split"),
         resampling=_build(ResamplingConfig, raw.get("resampling") or {}, "resampling"),
         model=_build(ModelConfig, model, "model"),

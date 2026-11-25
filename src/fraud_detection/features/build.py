@@ -367,12 +367,16 @@ def feature_columns(config: FeaturesConfig | None = None) -> list[str]:
     Returns
     -------
     list of str
-        Transaction, account, and (if enabled) balance feature names.
+        Transaction, account, and (if enabled) balance and history feature
+        names.
     """
+    from fraud_detection.features.sequence import history_columns
+
     config = config or FeaturesConfig()
     columns = [*TRANSACTION_FEATURES, *ACCOUNT_FEATURES]
     if config.balance_features:
         columns.extend(BALANCE_FEATURES)
+    columns.extend(history_columns(config.history_length, config.history_roles))
     return columns
 
 
@@ -401,8 +405,15 @@ def build_features(
     pandas.DataFrame
         Copy of ``df`` with the columns of :func:`feature_columns` appended.
     """
+    # Imported here because the history module reuses ACCOUNT_ROLES from this one
+    from fraud_detection.features.sequence import add_history_features
+
     config = config or FeaturesConfig()
     result = add_account_features(add_transaction_features(df), time_column)
     if config.balance_features:
         result = add_balance_features(result)
+    if config.history_length > 0:
+        result = add_history_features(
+            result, config.history_length, config.history_roles, time_column
+        )
     return result

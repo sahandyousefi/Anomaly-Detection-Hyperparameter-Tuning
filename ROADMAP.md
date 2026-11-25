@@ -27,7 +27,7 @@ Anomaly-Detection-Hyperparameter-Tuning/
 |   |-- cli.py                     # fraud-detection console script
 |   |-- train.py                   # config-driven training and evaluation run
 |   |-- data/                      # load.py, split.py, resample.py, synthetic.py
-|   |-- features/                  # build.py
+|   |-- features/                  # build.py, sequence.py
 |   |-- models/                    # base.py, baselines.py, gbm.py, unsupervised.py,
 |   |                              # autoencoder.py, sequence.py
 |   |-- tuning/                    # optuna_search.py, study_plots.py, nested_cv.py
@@ -71,7 +71,7 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 4: Unsupervised and deep learning anomaly detection
 
-- [ ] Sequence model (GRU) over each account's transaction history
+- [ ] Sequence model (GRU) over each account's transaction history, consuming the history columns
 - [ ] Feed-forward network with focal loss for supervised comparison
 - [ ] Hybrid model: autoencoder reconstruction error as a feature for gradient boosting
 - [ ] Unified comparison table across supervised, unsupervised, and hybrid approaches
@@ -148,3 +148,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-24: Isolation Forest and Local Outlier Factor baselines trained on legitimate transactions only
 - [x] 2026-11-24: PyTorch tabular autoencoder with reconstruction-error scoring
 - [x] 2026-11-24: Variational autoencoder variant
+- [x] 2026-11-25: Point-in-time account transaction histories as lag columns (`features/sequence.py`), the input of the sequence model
