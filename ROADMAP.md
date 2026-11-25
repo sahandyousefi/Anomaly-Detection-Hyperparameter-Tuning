@@ -30,7 +30,7 @@ Anomaly-Detection-Hyperparameter-Tuning/
 |   |-- features/                  # build.py, sequence.py
 |   |-- models/                    # base.py, baselines.py, gbm.py, unsupervised.py,
 |   |                              # autoencoder.py, neural.py, feedforward.py,
-|   |                              # sequence.py
+|   |                              # sequence.py, hybrid.py
 |   |-- tuning/                    # optuna_search.py, study_plots.py, nested_cv.py
 |   |-- evaluation/                # metrics.py, thresholds.py, calibration.py,
 |   |                              # resampling_comparison.py
@@ -72,7 +72,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 4: Unsupervised and deep learning anomaly detection
 
-- [ ] Hybrid model: autoencoder reconstruction error as a feature for gradient boosting
 - [ ] Unified comparison table across supervised, unsupervised, and hybrid approaches
 
 ## Phase 5: Explainability
@@ -150,3 +149,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-25: Point-in-time account transaction histories as lag columns (`features/sequence.py`), the input of the sequence model
 - [x] 2026-11-25: Sequence model (GRU) over each account's transaction history, consuming the history columns
 - [x] 2026-11-25: Feed-forward network with focal loss for supervised comparison
+- [x] 2026-11-25: Hybrid model: autoencoder reconstruction error as a feature for gradient boosting

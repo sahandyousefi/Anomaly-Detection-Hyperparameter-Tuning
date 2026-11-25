@@ -185,6 +185,18 @@ def _fit_feedforward(
     return fit_feedforward(train, X_validation, y_validation, params, seed)
 
 
+def _fit_hybrid(
+    train: ResampledFold,
+    X_validation: pd.DataFrame,
+    y_validation: pd.Series,
+    params: Mapping[str, Any] | None = None,
+    seed: int = 0,
+) -> FraudModel:
+    from fraud_detection.models.hybrid import fit_hybrid
+
+    return fit_hybrid(train, X_validation, y_validation, params, seed)
+
+
 MODEL_REGISTRY: dict[str, FitFunction] = {
     "logistic_regression": _fit_logistic_regression,
     "xgboost": _fit_xgboost,
@@ -196,6 +208,7 @@ MODEL_REGISTRY: dict[str, FitFunction] = {
     "variational_autoencoder": _fit_variational_autoencoder,
     "gru": _fit_gru,
     "feedforward": _fit_feedforward,
+    "hybrid": _fit_hybrid,
 }
 
 
