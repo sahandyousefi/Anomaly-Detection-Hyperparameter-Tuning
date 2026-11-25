@@ -74,7 +74,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field, fields
-from itertools import pairwise
 from typing import Any
 
 import numpy as np
@@ -82,6 +81,7 @@ import torch
 from torch import nn
 
 from fraud_detection.data.resample import ResampledFold
+from fraud_detection.models.neural import mlp
 from fraud_detection.models.unsupervised import (
     AnomalyDetector,
     legitimate_rows,
@@ -144,26 +144,14 @@ class AutoencoderParams:
         return cls(**params)
 
 
-def _mlp(widths: list[int], dropout: float, activate_last: bool) -> nn.Sequential:
-    layers: list[nn.Module] = []
-    n_layers = len(widths) - 1
-    for i, (w_in, w_out) in enumerate(pairwise(widths)):
-        layers.append(nn.Linear(w_in, w_out))
-        if i < n_layers - 1 or activate_last:
-            layers.append(nn.GELU())
-            if dropout > 0:
-                layers.append(nn.Dropout(dropout))
-    return nn.Sequential(*layers)
-
-
 class Autoencoder(nn.Module):
     """Symmetric multilayer perceptron autoencoder."""
 
     def __init__(self, n_features: int, params: AutoencoderParams) -> None:
         super().__init__()
         widths = [n_features, *params.hidden_dims, params.latent_dim]
-        self.encoder = _mlp(widths, params.dropout, activate_last=False)
-        self.decoder = _mlp(widths[::-1], params.dropout, activate_last=False)
+        self.encoder = mlp(widths, params.dropout, activate_last=False)
+        self.decoder = mlp(widths[::-1], params.dropout, activate_last=False)
 
     def row_loss(self, batch: torch.Tensor) -> torch.Tensor:
         """Mean squared reconstruction error of each row."""
@@ -181,10 +169,10 @@ class VariationalAutoencoder(nn.Module):
     def __init__(self, n_features: int, params: AutoencoderParams) -> None:
         super().__init__()
         trunk = [n_features, *params.hidden_dims]
-        self.encoder = _mlp(trunk, params.dropout, activate_last=True)
+        self.encoder = mlp(trunk, params.dropout, activate_last=True)
         self.mean = nn.Linear(trunk[-1], params.latent_dim)
         self.log_var = nn.Linear(trunk[-1], params.latent_dim)
-        self.decoder = _mlp(
+        self.decoder = mlp(
             [params.latent_dim, *params.hidden_dims[::-1], n_features],
             params.dropout,
             activate_last=False,
