@@ -15,7 +15,26 @@ on the validation fold has not improved for ``patience`` epochs, and the
 weights of the best epoch are restored. The validation fold keeps the observed
 class ratio, so the stopping criterion refers to the deployment prevalence.
 
-Scores are not calibrated probabilities when the training fold was rebalanced.
+With the focal loss of Lin et al. (2017) the per-row term becomes
+
+.. math::
+
+    \ell_{\gamma,\alpha}(y, f) = -\alpha_y \, (1 - p_y)^{\gamma} \log p_y,
+    \qquad p_1 = \sigma(f), \; p_0 = 1 - \sigma(f),
+
+with :math:`\alpha_1 = \alpha` and :math:`\alpha_0 = 1 - \alpha`. The factor
+:math:`(1 - p_y)^\gamma` shrinks the contribution of rows the network already
+classifies with confidence, which in fraud data are mostly easy legitimate
+transactions; :math:`\gamma = 0` and no :math:`\alpha` recover the
+cross-entropy.
+
+Scores are not calibrated probabilities when the training fold was rebalanced
+or the focal loss was used.
+
+References
+----------
+Lin, T.-Y., Goyal, P., Girshick, R., He, K., and Dollar, P. (2017). Focal loss
+for dense object detection. ICCV.
 """
 
 from __future__ import annotations
@@ -75,6 +94,41 @@ def mlp(widths: list[int], dropout: float, activate_last: bool) -> nn.Sequential
 def binary_cross_entropy(logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
     """Per-row binary cross-entropy on logits."""
     return F.binary_cross_entropy_with_logits(logits, targets, reduction="none")
+
+
+def focal_loss(
+    logits: torch.Tensor,
+    targets: torch.Tensor,
+    gamma: float = 2.0,
+    alpha: float | None = None,
+) -> torch.Tensor:
+    """Per-row focal loss on logits.
+
+    Parameters
+    ----------
+    logits, targets
+        Network outputs and float 0/1 labels.
+    gamma
+        Focusing parameter; zero gives the cross-entropy.
+    alpha
+        Weight of the positive class in ``(0, 1)``; ``None`` weights both
+        classes equally.
+
+    Returns
+    -------
+    torch.Tensor
+        Loss of each row.
+    """
+    if gamma < 0:
+        raise ValueError("gamma must be non-negative.")
+    ce = binary_cross_entropy(logits, targets)
+    # p_y = exp(-ce) avoids a separate, less stable sigmoid
+    loss = (1.0 - torch.exp(-ce)) ** gamma * ce
+    if alpha is not None:
+        if not 0 < alpha < 1:
+            raise ValueError("alpha must lie in (0, 1).")
+        loss = (alpha * targets + (1 - alpha) * (1 - targets)) * loss
+    return loss
 
 
 @dataclass(frozen=True)

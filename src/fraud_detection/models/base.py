@@ -173,6 +173,18 @@ def _fit_gru(
     return fit_sequence_model(train, X_validation, y_validation, params, seed)
 
 
+def _fit_feedforward(
+    train: ResampledFold,
+    X_validation: pd.DataFrame,
+    y_validation: pd.Series,
+    params: Mapping[str, Any] | None = None,
+    seed: int = 0,
+) -> FraudModel:
+    from fraud_detection.models.feedforward import fit_feedforward
+
+    return fit_feedforward(train, X_validation, y_validation, params, seed)
+
+
 MODEL_REGISTRY: dict[str, FitFunction] = {
     "logistic_regression": _fit_logistic_regression,
     "xgboost": _fit_xgboost,
@@ -183,6 +195,7 @@ MODEL_REGISTRY: dict[str, FitFunction] = {
     "autoencoder": _fit_autoencoder,
     "variational_autoencoder": _fit_variational_autoencoder,
     "gru": _fit_gru,
+    "feedforward": _fit_feedforward,
 }
 
 
