@@ -35,7 +35,8 @@ Anomaly-Detection-Hyperparameter-Tuning/
 |   |-- evaluation/                # metrics.py, thresholds.py, calibration.py,
 |   |                              # resampling_comparison.py, model_comparison.py
 |   |-- explain/                   # shap_analysis.py, local_explanations.py,
-|   |                              # reason_codes.py, importance_comparison.py
+|   |                              # reason_codes.py, importance_comparison.py,
+|   |                              # stability.py
 |   |-- monitoring/                # drift.py
 |   |-- serving/                   # api.py, schemas.py
 |-- tests/
@@ -76,7 +77,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 5: Explainability
 
-- [ ] Explanation stability check across seeds and folds
 
 ## Phase 6: Experiment tracking and reproducibility
 
@@ -151,3 +151,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-26: Local explanations for individual flagged transactions (waterfall plots)
 - [x] 2026-11-26: Reason-code generator mapping top SHAP contributions to human-readable alert reasons
 - [x] 2026-11-26: Permutation importance compared against SHAP rankings
+- [x] 2026-11-26: Explanation stability check across seeds and folds
