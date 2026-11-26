@@ -76,7 +76,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 5: Explainability
 
-- [ ] Reason-code generator mapping top SHAP contributions to human-readable alert reasons
 - [ ] Permutation importance compared against SHAP rankings
 - [ ] Explanation stability check across seeds and folds
 
@@ -151,3 +150,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-25: Unified comparison table across supervised, unsupervised, and hybrid approaches
 - [x] 2026-11-26: `explain/shap_analysis.py`: global SHAP summary, dependence plots, and interaction values
 - [x] 2026-11-26: Local explanations for individual flagged transactions (waterfall plots)
+- [x] 2026-11-26: Reason-code generator mapping top SHAP contributions to human-readable alert reasons
