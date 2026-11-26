@@ -75,7 +75,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 5: Explainability
 
-- [ ] `explain/shap_analysis.py`: global SHAP summary, dependence plots, and interaction values
 - [ ] Local explanations for individual flagged transactions (waterfall plots)
 - [ ] Reason-code generator mapping top SHAP contributions to human-readable alert reasons
 - [ ] Permutation importance compared against SHAP rankings
@@ -150,3 +149,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-25: Feed-forward network with focal loss for supervised comparison
 - [x] 2026-11-25: Hybrid model: autoencoder reconstruction error as a feature for gradient boosting
 - [x] 2026-11-25: Unified comparison table across supervised, unsupervised, and hybrid approaches
+- [x] 2026-11-26: `explain/shap_analysis.py`: global SHAP summary, dependence plots, and interaction values
