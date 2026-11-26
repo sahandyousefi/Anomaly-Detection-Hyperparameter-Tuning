@@ -34,7 +34,8 @@ Anomaly-Detection-Hyperparameter-Tuning/
 |   |-- tuning/                    # optuna_search.py, study_plots.py, nested_cv.py
 |   |-- evaluation/                # metrics.py, thresholds.py, calibration.py,
 |   |                              # resampling_comparison.py, model_comparison.py
-|   |-- explain/                   # shap_analysis.py, reason_codes.py
+|   |-- explain/                   # shap_analysis.py, local_explanations.py,
+|   |                              # reason_codes.py
 |   |-- monitoring/                # drift.py
 |   |-- serving/                   # api.py, schemas.py
 |-- tests/
@@ -75,7 +76,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 5: Explainability
 
-- [ ] Local explanations for individual flagged transactions (waterfall plots)
 - [ ] Reason-code generator mapping top SHAP contributions to human-readable alert reasons
 - [ ] Permutation importance compared against SHAP rankings
 - [ ] Explanation stability check across seeds and folds
@@ -150,3 +150,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-25: Hybrid model: autoencoder reconstruction error as a feature for gradient boosting
 - [x] 2026-11-25: Unified comparison table across supervised, unsupervised, and hybrid approaches
 - [x] 2026-11-26: `explain/shap_analysis.py`: global SHAP summary, dependence plots, and interaction values
+- [x] 2026-11-26: Local explanations for individual flagged transactions (waterfall plots)
