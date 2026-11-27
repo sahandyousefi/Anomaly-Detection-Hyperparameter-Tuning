@@ -55,6 +55,9 @@ LIGHTGBM_DEFAULTS: dict[str, Any] = {
     "colsample_bytree": 0.8,
     "n_jobs": -1,
     "verbose": -1,
+    # Same model for a given seed regardless of thread scheduling
+    "deterministic": True,
+    "force_row_wise": True,
 }
 
 CATBOOST_DEFAULTS: dict[str, Any] = {

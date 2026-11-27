@@ -25,6 +25,7 @@ Anomaly-Detection-Hyperparameter-Tuning/
 |   |-- __init__.py
 |   |-- config.py
 |   |-- cli.py                     # fraud-detection console script
+|   |-- reproducibility.py         # global seeding, environment capture
 |   |-- train.py                   # config-driven training and evaluation run
 |   |-- data/                      # load.py, split.py, resample.py, synthetic.py
 |   |-- features/                  # build.py, sequence.py
@@ -81,7 +82,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 6: Experiment tracking and reproducibility
 
-- [ ] Deterministic seeding across NumPy, scikit-learn, XGBoost, and PyTorch
 - [ ] `Makefile` targets for data, train, tune, evaluate, and test
 - [ ] DVC or a documented data-versioning approach for the PaySim file
 
@@ -153,3 +153,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-26: Permutation importance compared against SHAP rankings
 - [x] 2026-11-26: Explanation stability check across seeds and folds
 - [x] 2026-11-27: MLflow tracking for parameters, metrics, artifacts, and models
+- [x] 2026-11-27: Deterministic seeding across NumPy, scikit-learn, XGBoost, and PyTorch

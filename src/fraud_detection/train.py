@@ -10,6 +10,8 @@ The run follows the evaluation protocol of the package:
 5. choose the decision threshold on validation;
 6. score the test fold once, at the chosen threshold.
 
+Global random generators are seeded with ``config.seed`` before step 1.
+
 Artifacts written to the output directory are the pickled model, the
 resolved feature list, ``metrics.json`` with validation and test results, and
 ``split_summary.csv``. Numbers produced with ``--synthetic-rows`` come from
@@ -53,6 +55,7 @@ from fraud_detection.evaluation.thresholds import (
 )
 from fraud_detection.features.build import build_features, feature_columns
 from fraud_detection.models.base import FraudModel, fit_model
+from fraud_detection.reproducibility import environment_info, seed_everything
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +140,7 @@ def run_training(df: pd.DataFrame, config: Config) -> TrainingResult:
     TrainingResult
         Fitted model with validation and test results.
     """
+    seed_everything(config.seed)
     target = config.data.target
     features = feature_columns(config.features)
     table = build_features(df, config.features, config.data.time_column)
@@ -222,6 +226,7 @@ def save_artifacts(
         "model_params": dict(config.model.params),
         "resampling": asdict(config.resampling),
         "seed": config.seed,
+        "environment": environment_info(),
         "threshold": asdict(result.threshold),
         "validation": result.validation,
         "test": result.test,
