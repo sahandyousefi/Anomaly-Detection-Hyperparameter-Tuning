@@ -24,6 +24,7 @@ Usage::
     fraud-detection train --config configs/default.yaml
     fraud-detection train --config configs/default.yaml --synthetic-rows 50000
     fraud-detection train --config configs/default.yaml --track --run-name base
+    fraud-detection train --params artifacts/tuning/best_params.yaml
 """
 
 from __future__ import annotations
@@ -34,14 +35,14 @@ import logging
 import math
 import pickle
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
 from fraud_detection import __version__
-from fraud_detection.config import Config, load_config
+from fraud_detection.config import Config, load_config, load_model_override
 from fraud_detection.data.load import load_transactions
 from fraud_detection.data.resample import prepare_modeling_folds
 from fraud_detection.data.split import split_summary, time_split
@@ -258,6 +259,13 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         help="Train on N synthetic rows instead of the PaySim file.",
     )
     parser.add_argument(
+        "--params",
+        type=Path,
+        default=None,
+        help="YAML model section, such as best_params.yaml from the tune command,"
+        " that replaces the model section of the config.",
+    )
+    parser.add_argument(
         "--track",
         action="store_true",
         help="Log the run to MLflow, regardless of tracking.enabled.",
@@ -270,6 +278,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 def run_from_args(args: argparse.Namespace) -> int:
     """Execute the ``train`` command from parsed arguments."""
     config = load_config(args.config)
+    if args.params is not None:
+        config = replace(config, model=load_model_override(args.params))
     df = load_dataset(config, args.synthetic_rows)
     result = run_training(df, config)
     output = args.output or config.paths.artifacts

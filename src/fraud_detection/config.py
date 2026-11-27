@@ -106,6 +106,31 @@ class EvaluationConfig:
 
 
 @dataclass(frozen=True)
+class TuningConfig:
+    """Optuna search settings used by ``fraud-detection tune``.
+
+    The search runs on the training and validation periods only; see
+    :mod:`fraud_detection.tuning.optuna_search` for the fold layout.
+    """
+
+    n_trials: int = 50
+    n_splits: int = 4
+    gap_steps: int = 0
+    early_stopping_rounds: int = 50
+    timeout: float | None = None
+
+    def __post_init__(self) -> None:
+        if self.n_trials < 1 or self.n_splits < 1:
+            raise ConfigError("n_trials and n_splits must be at least 1.")
+        if self.gap_steps < 0:
+            raise ConfigError("gap_steps must be non-negative.")
+        if self.early_stopping_rounds < 1:
+            raise ConfigError("early_stopping_rounds must be at least 1.")
+        if self.timeout is not None and self.timeout <= 0:
+            raise ConfigError("timeout must be positive when set.")
+
+
+@dataclass(frozen=True)
 class TrackingConfig:
     """MLflow tracking settings.
 
@@ -134,6 +159,7 @@ class Config:
     resampling: ResamplingConfig
     model: ModelConfig
     evaluation: EvaluationConfig
+    tuning: TuningConfig = field(default_factory=TuningConfig)
     tracking: TrackingConfig = field(default_factory=TrackingConfig)
 
 
@@ -193,6 +219,7 @@ def config_from_dict(raw: Mapping[str, Any], base_dir: Path | None = None) -> Co
         resampling=_build(ResamplingConfig, raw.get("resampling") or {}, "resampling"),
         model=_build(ModelConfig, model, "model"),
         evaluation=_build(EvaluationConfig, raw.get("evaluation") or {}, "evaluation"),
+        tuning=_build(TuningConfig, raw.get("tuning") or {}, "tuning"),
         tracking=_build(TrackingConfig, raw.get("tracking") or {}, "tracking"),
     )
 
@@ -221,3 +248,28 @@ def load_config(path: str | Path, base_dir: Path | None = None) -> Config:
     if base_dir is None:
         base_dir = path.resolve().parent.parent
     return config_from_dict(raw, base_dir=base_dir)
+
+
+def load_model_override(path: str | Path) -> ModelConfig:
+    """Read a model section written by ``fraud-detection tune``.
+
+    Parameters
+    ----------
+    path
+        YAML file with a ``model`` mapping holding ``name`` and ``params``.
+
+    Returns
+    -------
+    ModelConfig
+        Model family and parameters that replace ``config.model``.
+    """
+    path = Path(path)
+    with path.open(encoding="utf-8") as fh:
+        raw = yaml.safe_load(fh)
+    if not isinstance(raw, Mapping):
+        raise ConfigError(f"{path} does not contain a YAML mapping.")
+    model = dict(_section(raw, "model"))
+    if "name" not in model:
+        raise ConfigError(f"{path}: the model section needs a name.")
+    model["params"] = dict(model.get("params") or {})
+    return _build(ModelConfig, model, "model")

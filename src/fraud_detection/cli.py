@@ -6,7 +6,7 @@ import argparse
 import logging
 from collections.abc import Sequence
 
-from fraud_detection import __version__, train
+from fraud_detection import __version__, train, tune
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -26,6 +26,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     train.add_arguments(train_parser)
     train_parser.set_defaults(handler=train.run_from_args)
+
+    tune_parser = commands.add_parser(
+        "tune", help="Search hyperparameters on the training and validation periods."
+    )
+    tune.add_arguments(tune_parser)
+    tune_parser.set_defaults(handler=tune.run_from_args)
     return parser
 
 

@@ -49,6 +49,16 @@ evaluation:
   cost_false_negative: 25.0
   target_recall: 0.90
 
+# Optuna search for `fraud-detection tune`. Model params above are held fixed
+# unless the search space samples them; n_estimators is only an upper bound
+# because early stopping picks the number of rounds.
+tuning:
+  n_trials: 50
+  n_splits: 4
+  gap_steps: 0
+  early_stopping_rounds: 50
+  timeout: null
+
 # MLflow run logging; also switched on by `fraud-detection train --track`.
 # A null tracking_uri uses MLFLOW_TRACKING_URI or MLflow's local default.
 tracking:
