@@ -48,3 +48,12 @@ evaluation:
   cost_false_positive: 1.0
   cost_false_negative: 25.0
   target_recall: 0.90
+
+# MLflow run logging; also switched on by `fraud-detection train --track`.
+# A null tracking_uri uses MLFLOW_TRACKING_URI or MLflow's local default.
+tracking:
+  enabled: false
+  tracking_uri: null
+  experiment_name: paysim-fraud-detection
+  artifact_location: null
+  log_model: true

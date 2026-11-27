@@ -13,12 +13,15 @@ The run follows the evaluation protocol of the package:
 Artifacts written to the output directory are the pickled model, the
 resolved feature list, ``metrics.json`` with validation and test results, and
 ``split_summary.csv``. Numbers produced with ``--synthetic-rows`` come from
-the synthetic generator and say nothing about performance on PaySim.
+the synthetic generator and say nothing about performance on PaySim. With
+``--track`` (or ``tracking.enabled`` in the config) the run is also logged to
+MLflow.
 
 Usage::
 
     fraud-detection train --config configs/default.yaml
     fraud-detection train --config configs/default.yaml --synthetic-rows 50000
+    fraud-detection train --config configs/default.yaml --track --run-name base
 """
 
 from __future__ import annotations
@@ -249,6 +252,14 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         metavar="N",
         help="Train on N synthetic rows instead of the PaySim file.",
     )
+    parser.add_argument(
+        "--track",
+        action="store_true",
+        help="Log the run to MLflow, regardless of tracking.enabled.",
+    )
+    parser.add_argument(
+        "--run-name", default=None, help="Display name of the MLflow run."
+    )
 
 
 def run_from_args(args: argparse.Namespace) -> int:
@@ -257,7 +268,8 @@ def run_from_args(args: argparse.Namespace) -> int:
     df = load_dataset(config, args.synthetic_rows)
     result = run_training(df, config)
     output = args.output or config.paths.artifacts
-    paths = save_artifacts(result, config, output, args.synthetic_rows is not None)
+    synthetic = args.synthetic_rows is not None
+    paths = save_artifacts(result, config, output, synthetic)
     test = result.test
     logger.info(
         "Test PR-AUC %.4f, recall %.3f, precision %.3f at threshold %.4g",
@@ -267,6 +279,11 @@ def run_from_args(args: argparse.Namespace) -> int:
         result.threshold.threshold,
     )
     logger.info("Artifacts written to %s", paths["metrics"].parent)
+    if args.track or config.tracking.enabled:
+        from fraud_detection.tracking import log_training_run
+
+        run_id = log_training_run(result, config, paths, synthetic, args.run_name)
+        logger.info("Logged MLflow run %s", run_id)
     return 0
 
 

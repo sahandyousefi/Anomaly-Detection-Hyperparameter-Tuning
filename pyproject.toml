@@ -44,6 +44,9 @@ tune = [
 dl = [
     "torch>=2.1",
 ]
+track = [
+    "mlflow>=3.0",
+]
 
 [project.scripts]
 fraud-detection = "fraud_detection.cli:main"

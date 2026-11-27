@@ -106,6 +106,25 @@ class EvaluationConfig:
 
 
 @dataclass(frozen=True)
+class TrackingConfig:
+    """MLflow tracking settings.
+
+    ``tracking_uri`` and ``artifact_location`` fall back to the MLflow
+    defaults (``MLFLOW_TRACKING_URI`` or a local SQLite store) when ``None``.
+    """
+
+    enabled: bool = False
+    tracking_uri: str | None = None
+    experiment_name: str = "paysim-fraud-detection"
+    artifact_location: str | None = None
+    log_model: bool = True
+
+    def __post_init__(self) -> None:
+        if not self.experiment_name:
+            raise ConfigError("experiment_name must not be empty.")
+
+
+@dataclass(frozen=True)
 class Config:
     seed: int
     paths: PathsConfig
@@ -115,6 +134,7 @@ class Config:
     resampling: ResamplingConfig
     model: ModelConfig
     evaluation: EvaluationConfig
+    tracking: TrackingConfig = field(default_factory=TrackingConfig)
 
 
 def _section(raw: Mapping[str, Any], key: str) -> Mapping[str, Any]:
@@ -173,6 +193,7 @@ def config_from_dict(raw: Mapping[str, Any], base_dir: Path | None = None) -> Co
         resampling=_build(ResamplingConfig, raw.get("resampling") or {}, "resampling"),
         model=_build(ModelConfig, model, "model"),
         evaluation=_build(EvaluationConfig, raw.get("evaluation") or {}, "evaluation"),
+        tracking=_build(TrackingConfig, raw.get("tracking") or {}, "tracking"),
     )
 
 

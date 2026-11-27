@@ -38,6 +38,7 @@ Anomaly-Detection-Hyperparameter-Tuning/
 |   |                              # reason_codes.py, importance_comparison.py,
 |   |                              # stability.py
 |   |-- monitoring/                # drift.py
+|   |-- tracking/                  # mlflow_run.py, pyfunc_model.py
 |   |-- serving/                   # api.py, schemas.py
 |-- tests/
 |-- Dockerfile
@@ -80,7 +81,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 6: Experiment tracking and reproducibility
 
-- [ ] MLflow tracking for parameters, metrics, artifacts, and models
 - [ ] Deterministic seeding across NumPy, scikit-learn, XGBoost, and PyTorch
 - [ ] `Makefile` targets for data, train, tune, evaluate, and test
 - [ ] DVC or a documented data-versioning approach for the PaySim file
@@ -152,3 +152,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-26: Reason-code generator mapping top SHAP contributions to human-readable alert reasons
 - [x] 2026-11-26: Permutation importance compared against SHAP rankings
 - [x] 2026-11-26: Explanation stability check across seeds and folds
+- [x] 2026-11-27: MLflow tracking for parameters, metrics, artifacts, and models
