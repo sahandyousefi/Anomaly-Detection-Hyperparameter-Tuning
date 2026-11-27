@@ -16,7 +16,8 @@ Written to the output directory:
   same study instead of starting over (disable with ``--in-memory``).
 
 Optimization history, parameter importance, and slice plots go to
-``paths.figures``. The ``tune`` extra (Optuna) is required.
+``paths.figures`` unless ``--figures`` is given. The ``tune`` extra (Optuna)
+is required.
 
 Usage::
 
@@ -207,6 +208,12 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         help="Output directory (default: <paths.artifacts>/tuning).",
     )
     parser.add_argument(
+        "--figures",
+        type=Path,
+        default=None,
+        help="Directory for the study figures (default: paths.figures).",
+    )
+    parser.add_argument(
         "--n-trials",
         type=int,
         default=None,
@@ -237,7 +244,8 @@ def run_from_args(args: argparse.Namespace) -> int:
     storage = None if args.in_memory else sqlite_storage(output / "study.db")
     df = load_dataset(config, args.synthetic_rows)
     study = run_tuning(df, config, storage)
-    paths = save_tuning_outputs(study, config, output, config.paths.figures)
+    figures = args.figures or config.paths.figures
+    paths = save_tuning_outputs(study, config, output, figures)
     logger.info(
         "Best mean PR-AUC %.4f (trial %d); parameters in %s",
         study.best_value,

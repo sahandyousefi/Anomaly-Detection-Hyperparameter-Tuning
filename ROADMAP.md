@@ -84,7 +84,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 6: Experiment tracking and reproducibility
 
-- [ ] `Makefile` targets for data, train, tune, evaluate, and test
 - [ ] DVC or a documented data-versioning approach for the PaySim file
 
 ## Phase 7: Serving and monitoring
@@ -158,3 +157,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-27: Deterministic seeding across NumPy, scikit-learn, XGBoost, and PyTorch
 - [x] 2026-11-27: `tune` command: Optuna search on the training and validation periods, writing `best_params.yaml` for `train --params`
 - [x] 2026-11-27: `evaluate` command: unified model comparison table on the configured folds
+- [x] 2026-11-27: `Makefile` targets for data, train, tune, evaluate, and test
