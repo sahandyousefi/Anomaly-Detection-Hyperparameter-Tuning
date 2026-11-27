@@ -30,6 +30,20 @@ data/raw/PS_20174392719_1491204439457_log.csv
 
 The original notebook in `notebooks/00_original_exploration.ipynb` reads from the Kaggle kernel path `/kaggle/input/paysim1/`. Change the path in its second cell when running it locally.
 
+## Versioning
+
+The raw file is identified by its content rather than tracked with a data-versioning tool. PaySim is one immutable public CSV, so DVC or a similar system would add a remote cache and pipeline definitions without adding information. After the first download, record the file's identity with
+
+```bash
+fraud-detection data pin      # or: make data, which downloads and pins
+```
+
+This writes `data/PS_20174392719_1491204439457_log.manifest.json`, which is committed. It holds the SHA-256 digest $h(D)$ of the file $D$, its size in bytes, and its numbers of rows and columns. `pin` warns if the shape differs from the public release (6,362,620 rows, 11 columns) and refuses to replace a manifest that pins different contents unless `--force` is given.
+
+On any later run, `fraud-detection data verify` (or `make data-verify`) recomputes $h(D)$ and fails on any difference. `fraud-detection train` performs the same check whenever a manifest exists and writes the digest to `metrics.json` as `data_sha256`; tracked runs also carry it as an MLflow tag. Every reported metric can therefore be traced to the exact bytes it was computed from. A run on a modified or truncated file fails instead of silently producing numbers that are not comparable.
+
+Runs on synthetic data (`--synthetic-rows`) are marked with `synthetic_data: true` and have no digest.
+
 ## Directory conventions
 
 | Directory | Contents | Tracked |

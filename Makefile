@@ -27,7 +27,7 @@ TUNE_ARGS += --figures $(FIGURES)
 endif
 
 .DEFAULT_GOAL := help
-.PHONY: help install install-all data train train-tuned tune evaluate test lint \
+.PHONY: help install install-all data data-verify train train-tuned tune evaluate test lint \
 	format check smoke clean
 
 help:  ## List the available targets
@@ -40,11 +40,15 @@ install:  ## Install the package with development tools
 install-all:  ## Install every optional extra (boosting, tuning, deep learning, tracking)
 	$(PYTHON) -m pip install -e ".[dev,gbm,tune,dl,track]"
 
-data: $(RAW_DATA)  ## Download the PaySim log with the Kaggle CLI
+data: $(RAW_DATA)  ## Download the PaySim log and pin its content hash
 
 $(RAW_DATA):
 	kaggle datasets download -d $(KAGGLE_DATASET) -p $(dir $(RAW_DATA)) --unzip
 	@test -f $@ || { echo "Expected $@ after download, see data/README.md"; exit 1; }
+	$(CLI) data pin --config $(CONFIG)
+
+data-verify:  ## Check the raw file against its pinned SHA-256 manifest
+	$(CLI) data verify --config $(CONFIG)
 
 train: $(DATA_DEP)  ## Train and evaluate the model configured in CONFIG
 	$(CLI) train --config $(CONFIG) --output $(ARTIFACTS)/model $(DATA_ARGS)

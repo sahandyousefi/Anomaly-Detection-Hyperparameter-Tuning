@@ -47,6 +47,7 @@ from fraud_detection.data.load import load_transactions
 from fraud_detection.data.resample import prepare_modeling_folds
 from fraud_detection.data.split import split_summary, time_split
 from fraud_detection.data.synthetic import generate_paysim_like
+from fraud_detection.data.versioning import data_fingerprint
 from fraud_detection.evaluation.calibration import calibration_report
 from fraud_detection.evaluation.metrics import ranking_report
 from fraud_detection.evaluation.thresholds import (
@@ -190,6 +191,7 @@ def save_artifacts(
     config: Config,
     output_dir: Path,
     synthetic: bool = False,
+    data_sha256: str | None = None,
 ) -> dict[str, Path]:
     """Write the model, features, metrics, and split summary to disk.
 
@@ -204,6 +206,9 @@ def save_artifacts(
     synthetic
         Whether the data came from the synthetic generator, recorded so that
         the metrics are not mistaken for PaySim results.
+    data_sha256
+        Digest of the raw data file, see
+        :func:`fraud_detection.data.versioning.data_fingerprint`.
 
     Returns
     -------
@@ -223,6 +228,7 @@ def save_artifacts(
     metrics = {
         "package_version": __version__,
         "synthetic_data": synthetic,
+        "data_sha256": data_sha256,
         "model": config.model.name,
         "model_params": dict(config.model.params),
         "resampling": asdict(config.resampling),
@@ -284,7 +290,8 @@ def run_from_args(args: argparse.Namespace) -> int:
     result = run_training(df, config)
     output = args.output or config.paths.artifacts
     synthetic = args.synthetic_rows is not None
-    paths = save_artifacts(result, config, output, synthetic)
+    digest = None if synthetic else data_fingerprint(config.paths.raw_data)
+    paths = save_artifacts(result, config, output, synthetic, digest)
     test = result.test
     logger.info(
         "Test PR-AUC %.4f, recall %.3f, precision %.3f at threshold %.4g",
@@ -297,7 +304,9 @@ def run_from_args(args: argparse.Namespace) -> int:
     if args.track or config.tracking.enabled:
         from fraud_detection.tracking import log_training_run
 
-        run_id = log_training_run(result, config, paths, synthetic, args.run_name)
+        run_id = log_training_run(
+            result, config, paths, synthetic, args.run_name, data_sha256=digest
+        )
         logger.info("Logged MLflow run %s", run_id)
     return 0
 

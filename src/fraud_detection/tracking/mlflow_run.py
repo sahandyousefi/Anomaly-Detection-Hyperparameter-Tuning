@@ -7,7 +7,8 @@ A tracked run records
   different model families line up in the MLflow comparison view;
 * metrics: every finite validation and test metric of
   :class:`~fraud_detection.train.TrainingResult`, prefixed by fold;
-* tags: package version, model family, and whether the data was synthetic;
+* tags: package version, model family, whether the data was synthetic, and
+  the SHA-256 digest of the raw file;
 * artifacts: the files written by :func:`fraud_detection.train.save_artifacts`;
 * model: optionally, a pyfunc model that returns scores and decisions at the
   threshold chosen on validation.
@@ -115,13 +116,18 @@ def run_metrics(result: TrainingResult) -> dict[str, float]:
     return metrics
 
 
-def run_tags(config: Config, synthetic: bool) -> dict[str, str]:
+def run_tags(
+    config: Config, synthetic: bool, data_sha256: str | None = None
+) -> dict[str, str]:
     """Tags identifying the code version and the data source of a run."""
-    return {
+    tags = {
         "package_version": __version__,
         "model_family": config.model.name,
         "synthetic_data": str(synthetic).lower(),
     }
+    if data_sha256 is not None:
+        tags["data_sha256"] = data_sha256
+    return tags
 
 
 def _experiment_id(mlflow: ModuleType, tracking: TrackingConfig) -> str:
@@ -139,6 +145,7 @@ def log_training_run(
     artifact_paths: Mapping[str, Path],
     synthetic: bool = False,
     run_name: str | None = None,
+    data_sha256: str | None = None,
 ) -> str:
     """Record a finished training run in MLflow.
 
@@ -157,6 +164,8 @@ def log_training_run(
         Whether the data came from the synthetic generator.
     run_name
         Optional display name of the run.
+    data_sha256
+        Digest of the raw data file, logged as a tag.
 
     Returns
     -------
@@ -169,7 +178,7 @@ def log_training_run(
         mlflow.set_tracking_uri(tracking.tracking_uri)
     experiment_id = _experiment_id(mlflow, tracking)
     with mlflow.start_run(experiment_id=experiment_id, run_name=run_name) as run:
-        mlflow.set_tags(run_tags(config, synthetic))
+        mlflow.set_tags(run_tags(config, synthetic, data_sha256))
         mlflow.log_params(flatten_params(config))
         mlflow.log_metrics(run_metrics(result))
         for path in artifact_paths.values():

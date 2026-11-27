@@ -7,6 +7,7 @@ import logging
 from collections.abc import Sequence
 
 from fraud_detection import __version__, evaluate, train, tune
+from fraud_detection.data import versioning
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -20,6 +21,12 @@ def build_parser() -> argparse.ArgumentParser:
         "-v", "--verbose", action="store_true", help="Log debug messages."
     )
     commands = parser.add_subparsers(dest="command", required=True)
+
+    data_parser = commands.add_parser(
+        "data", help="Pin or verify the content hash of the raw PaySim file."
+    )
+    versioning.add_arguments(data_parser)
+    data_parser.set_defaults(handler=versioning.run_from_args)
 
     train_parser = commands.add_parser(
         "train", help="Train and evaluate the configured model."

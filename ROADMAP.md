@@ -29,7 +29,8 @@ Anomaly-Detection-Hyperparameter-Tuning/
 |   |-- train.py                   # config-driven training and evaluation run
 |   |-- tune.py                    # config-driven hyperparameter search
 |   |-- evaluate.py                # config-driven model comparison
-|   |-- data/                      # load.py, split.py, resample.py, synthetic.py
+|   |-- data/                      # load.py, split.py, resample.py, synthetic.py,
+|   |                              # versioning.py
 |   |-- features/                  # build.py, sequence.py
 |   |-- models/                    # base.py, baselines.py, gbm.py, unsupervised.py,
 |   |                              # autoencoder.py, neural.py, feedforward.py,
@@ -84,7 +85,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 6: Experiment tracking and reproducibility
 
-- [ ] DVC or a documented data-versioning approach for the PaySim file
 
 ## Phase 7: Serving and monitoring
 
@@ -158,3 +158,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-27: `tune` command: Optuna search on the training and validation periods, writing `best_params.yaml` for `train --params`
 - [x] 2026-11-27: `evaluate` command: unified model comparison table on the configured folds
 - [x] 2026-11-27: `Makefile` targets for data, train, tune, evaluate, and test
+- [x] 2026-11-27: DVC or a documented data-versioning approach for the PaySim file
