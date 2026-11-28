@@ -182,7 +182,10 @@ def log_training_run(
         mlflow.log_params(flatten_params(config))
         mlflow.log_metrics(run_metrics(result))
         for path in artifact_paths.values():
-            mlflow.log_artifact(str(path))
+            if Path(path).is_dir():
+                mlflow.log_artifacts(str(path), artifact_path=Path(path).name)
+            else:
+                mlflow.log_artifact(str(path))
         if tracking.log_model:
             from fraud_detection.tracking.pyfunc_model import log_scoring_model
 

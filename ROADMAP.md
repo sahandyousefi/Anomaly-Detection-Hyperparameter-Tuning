@@ -43,7 +43,7 @@ Anomaly-Detection-Hyperparameter-Tuning/
 |   |                              # stability.py
 |   |-- monitoring/                # drift.py
 |   |-- tracking/                  # mlflow_run.py, pyfunc_model.py
-|   |-- serving/                   # api.py, schemas.py
+|   |-- serving/                   # artifact.py, api.py, schemas.py
 |-- tests/
 |-- Dockerfile
 |-- Makefile
@@ -88,7 +88,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 7: Serving and monitoring
 
-- [ ] Model artifact packaging with a versioned feature schema
 - [ ] FastAPI scoring service returning score, decision, and reason codes
 - [ ] Pydantic request and response models with input validation
 - [ ] API tests with the FastAPI test client
@@ -159,3 +158,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-27: `evaluate` command: unified model comparison table on the configured folds
 - [x] 2026-11-27: `Makefile` targets for data, train, tune, evaluate, and test
 - [x] 2026-11-27: DVC or a documented data-versioning approach for the PaySim file
+- [x] 2026-11-28: Model artifact packaging with a versioned feature schema

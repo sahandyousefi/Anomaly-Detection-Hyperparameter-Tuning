@@ -13,11 +13,12 @@ The run follows the evaluation protocol of the package:
 Global random generators are seeded with ``config.seed`` before step 1.
 
 Artifacts written to the output directory are the pickled model, the
-resolved feature list, ``metrics.json`` with validation and test results, and
-``split_summary.csv``. Numbers produced with ``--synthetic-rows`` come from
-the synthetic generator and say nothing about performance on PaySim. With
-``--track`` (or ``tracking.enabled`` in the config) the run is also logged to
-MLflow.
+resolved feature list, ``metrics.json`` with validation and test results,
+``split_summary.csv``, and ``artifact/``, a self-contained scoring artifact
+with a versioned feature schema (see :mod:`fraud_detection.serving.artifact`).
+Numbers produced with ``--synthetic-rows`` come from the synthetic generator
+and say nothing about performance on PaySim. With ``--track`` (or
+``tracking.enabled`` in the config) the run is also logged to MLflow.
 
 Usage::
 
@@ -58,6 +59,12 @@ from fraud_detection.evaluation.thresholds import (
 from fraud_detection.features.build import build_features, feature_columns
 from fraud_detection.models.base import FraudModel, fit_model
 from fraud_detection.reproducibility import environment_info, seed_everything
+from fraud_detection.serving.artifact import (
+    FeatureSchema,
+    ModelArtifact,
+    artifact_metadata,
+    save_artifact,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +88,8 @@ class TrainingResult:
         threshold, per fold.
     splits
         Size, positives, and step range of each fold.
+    schema
+        Versioned input contract of the model.
     """
 
     model: FraudModel
@@ -89,6 +98,7 @@ class TrainingResult:
     validation: dict[str, float]
     test: dict[str, float]
     splits: pd.DataFrame
+    schema: FeatureSchema
 
 
 def load_dataset(config: Config, synthetic_rows: int | None = None) -> pd.DataFrame:
@@ -174,6 +184,9 @@ def run_training(df: pd.DataFrame, config: Config) -> TrainingResult:
         validation=_fold_report(folds.y_validation, validation_scores, choice, config),
         test=_fold_report(folds.y_test, test_scores, choice, config),
         splits=split_summary(split, target),
+        schema=FeatureSchema.from_table(
+            table, features, config.features, config.data.time_column
+        ),
     )
 
 
@@ -213,7 +226,7 @@ def save_artifacts(
     Returns
     -------
     dict
-        Artifact name mapped to its path.
+        Artifact name mapped to its path; ``artifact`` is a directory.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     paths = {
@@ -221,6 +234,7 @@ def save_artifacts(
         "features": output_dir / "features.json",
         "metrics": output_dir / "metrics.json",
         "splits": output_dir / "split_summary.csv",
+        "artifact": output_dir / "artifact",
     }
     with paths["model"].open("wb") as fh:
         pickle.dump(result.model, fh)
@@ -240,6 +254,15 @@ def save_artifacts(
     }
     paths["metrics"].write_text(json.dumps(_json_safe(metrics), indent=2) + "\n")
     result.splits.to_csv(paths["splits"])
+    artifact = ModelArtifact(
+        model=result.model,
+        schema=result.schema,
+        threshold=result.threshold.threshold,
+        metadata=artifact_metadata(
+            config.model.name, config.seed, synthetic, data_sha256
+        ),
+    )
+    save_artifact(artifact, paths["artifact"])
     return paths
 
 

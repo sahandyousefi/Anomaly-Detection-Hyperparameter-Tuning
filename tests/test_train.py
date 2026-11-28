@@ -11,6 +11,7 @@ from fraud_detection.config import load_config
 from fraud_detection.data.synthetic import generate_paysim_like
 from fraud_detection.features.build import build_features
 from fraud_detection.models.base import FraudModel
+from fraud_detection.serving.artifact import load_artifact
 from fraud_detection.train import load_dataset, run_training, save_artifacts
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -70,6 +71,12 @@ def test_save_artifacts(config_path: Path, tmp_path: Path) -> None:
         model = pickle.load(fh)
     X = build_features(df.head(200))[result.features]
     np.testing.assert_allclose(model.predict_scores(X), result.model.predict_scores(X))
+
+    artifact = load_artifact(paths["artifact"])
+    assert artifact.schema.names == result.features
+    assert artifact.threshold == pytest.approx(result.threshold.threshold)
+    assert artifact.metadata["synthetic_data"] is True
+    np.testing.assert_allclose(artifact.score(X), result.model.predict_scores(X))
 
 
 def test_missing_data_file_reports_instructions(config_path: Path) -> None:
