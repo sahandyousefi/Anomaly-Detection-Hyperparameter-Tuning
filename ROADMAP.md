@@ -89,7 +89,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 ## Phase 7: Serving and monitoring
 
 - [ ] FastAPI scoring service returning score, decision, and reason codes
-- [ ] Pydantic request and response models with input validation
 - [ ] API tests with the FastAPI test client
 - [ ] Dockerfile and `docker-compose.yml`
 - [ ] Data drift and score drift monitoring (PSI and KS) with a report script
@@ -159,3 +158,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-27: `Makefile` targets for data, train, tune, evaluate, and test
 - [x] 2026-11-27: DVC or a documented data-versioning approach for the PaySim file
 - [x] 2026-11-28: Model artifact packaging with a versioned feature schema
+- [x] 2026-11-28: Pydantic request and response models with input validation

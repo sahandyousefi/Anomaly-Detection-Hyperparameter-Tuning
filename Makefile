@@ -37,8 +37,8 @@ help:  ## List the available targets
 install:  ## Install the package with development tools
 	$(PYTHON) -m pip install -e ".[dev]"
 
-install-all:  ## Install every optional extra (boosting, tuning, deep learning, tracking)
-	$(PYTHON) -m pip install -e ".[dev,gbm,tune,dl,track]"
+install-all:  ## Install every optional extra (boosting, tuning, deep learning, tracking, serving)
+	$(PYTHON) -m pip install -e ".[dev,gbm,tune,dl,track,serve]"
 
 data: $(RAW_DATA)  ## Download the PaySim log and pin its content hash
 

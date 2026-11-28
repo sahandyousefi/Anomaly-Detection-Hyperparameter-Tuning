@@ -34,8 +34,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: pyproject.toml
-      # Optuna is light enough to keep the tuning tests in CI
-      - run: pip install -e ".[dev,tune]"
+      # Optuna and the serving stack are light enough to test in CI
+      - run: pip install -e ".[dev,tune,serve]"
       - run: pytest --cov=fraud_detection --cov-report=term-missing
       # End-to-end tune, train, and evaluate on synthetic data
       - run: make smoke
