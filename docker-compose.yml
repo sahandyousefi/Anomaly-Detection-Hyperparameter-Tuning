@@ -1,0 +1,18 @@
+# Runs the scoring service against a locally trained artifact:
+#   make train && docker compose up --build
+services:
+  scoring:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fraud-detection-scoring:0.1.0
+    ports:
+      - "8000:8000"
+    environment:
+      FRAUD_DETECTION_ARTIFACT: /models/artifact
+    volumes:
+      - ./artifacts/model/artifact:/models/artifact:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+    restart: unless-stopped

@@ -49,3 +49,8 @@ def test_synthetic_runs_skip_the_download() -> None:
         in commands
     )
     assert "--n-trials 2 --figures out/fig --synthetic-rows 500" in commands
+
+
+def test_serving_targets() -> None:
+    commands = dry_run("docker-build", "IMAGE=scoring:test")
+    assert "docker build --tag scoring:test ." in commands

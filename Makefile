@@ -8,6 +8,9 @@ ARTIFACTS ?= artifacts
 RAW_DATA ?= data/raw/PS_20174392719_1491204439457_log.csv
 KAGGLE_DATASET ?= ealaxi/paysim1
 BEST_PARAMS := $(ARTIFACTS)/tuning/best_params.yaml
+MODEL_ARTIFACT ?= $(ARTIFACTS)/model/artifact
+PORT ?= 8000
+IMAGE ?= fraud-detection-scoring:0.1.0
 
 CLI := $(PYTHON) -m fraud_detection.cli
 
@@ -28,7 +31,7 @@ endif
 
 .DEFAULT_GOAL := help
 .PHONY: help install install-all data data-verify train train-tuned tune evaluate test lint \
-	format check smoke clean
+	format check smoke serve docker-build docker-up clean
 
 help:  ## List the available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | \
@@ -82,6 +85,19 @@ check: lint test  ## Lint and test, as in CI
 smoke:  ## Run tune, train-tuned, and evaluate end to end on synthetic data
 	$(MAKE) tune train-tuned evaluate SYNTHETIC_ROWS=20000 TRIALS=3 \
 		ARTIFACTS=$(ARTIFACTS)/smoke FIGURES=$(ARTIFACTS)/smoke/figures
+
+serve:  ## Serve MODEL_ARTIFACT locally with uvicorn on PORT
+	@test -f $(MODEL_ARTIFACT)/manifest.json || { echo "Run make train first"; exit 1; }
+	FRAUD_DETECTION_ARTIFACT=$(MODEL_ARTIFACT) $(PYTHON) -m uvicorn \
+		fraud_detection.serving.api:app --host 127.0.0.1 --port $(PORT)
+
+docker-build:  ## Build the scoring image
+	docker build --tag $(IMAGE) .
+
+# docker-compose.yml mounts artifacts/model/artifact, the default train output
+docker-up:  ## Run the scoring service with docker compose
+	@test -f artifacts/model/artifact/manifest.json || { echo "Run make train first"; exit 1; }
+	docker compose up --build
 
 clean:  ## Remove generated artifacts and caches (keeps data/raw)
 	rm -rf $(ARTIFACTS) .pytest_cache .ruff_cache .coverage htmlcov
