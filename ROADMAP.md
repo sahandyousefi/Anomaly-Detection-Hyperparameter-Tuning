@@ -90,7 +90,6 @@ These issues drive Phase 1 and must be fixed before any new results are reported
 
 ## Phase 7: Serving and monitoring
 
-- [ ] Data drift and score drift monitoring (PSI and KS) with a report script
 - [ ] Batch scoring script for offline evaluation
 
 ## Phase 8: Documentation
@@ -161,3 +160,4 @@ Completed items are moved here with the date.
 - [x] 2026-11-28: FastAPI scoring service returning score, decision, and reason codes
 - [x] 2026-11-28: API tests with the FastAPI test client
 - [x] 2026-11-28: Dockerfile and `docker-compose.yml`
+- [x] 2026-11-28: Data drift and score drift monitoring (PSI and KS) with a report script

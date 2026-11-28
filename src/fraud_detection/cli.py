@@ -8,6 +8,7 @@ from collections.abc import Sequence
 
 from fraud_detection import __version__, evaluate, train, tune
 from fraud_detection.data import versioning
+from fraud_detection.monitoring import drift
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -45,6 +46,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     evaluate.add_arguments(evaluate_parser)
     evaluate_parser.set_defaults(handler=evaluate.run_from_args)
+
+    drift_parser = commands.add_parser(
+        "drift", help="Feature and score drift (PSI, KS) between two periods."
+    )
+    drift.add_arguments(drift_parser)
+    drift_parser.set_defaults(handler=drift.run_from_args)
     return parser
 
 
